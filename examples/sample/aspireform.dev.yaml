@@ -1,0 +1,3 @@
+resources:
+  sql:
+    aspireName: sql-dev

@@ -1,0 +1,15 @@
+aspireform:
+  version: 1
+  project: SampleApp
+  apphost: ./SampleApp.AppHost
+resources:
+  sql:
+    type: sqlserver
+    aspireName: sql
+    databases: [appdb]
+modules:
+  data:
+    type: ef-data
+    dependsOn: [sql]
+    database: appdb
+    contextName: AppDbContext
