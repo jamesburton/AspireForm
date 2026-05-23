@@ -54,6 +54,24 @@ public sealed class StateStoreTests : IDisposable
     }
 
     [Fact]
+    public void Save_then_Load_round_trips_block_inputs()
+    {
+        var state = new AspireFormState();
+        state.Blocks["sql"] = new BlockState
+        {
+            Type = "sqlserver",
+            Kind = "resource",
+            Inputs = new System.Text.Json.Nodes.JsonObject { ["aspireName"] = "sql", ["databases"] = new System.Text.Json.Nodes.JsonArray("appdb") },
+        };
+
+        _store.Save(_dir, state);
+        var reloaded = _store.Load(_dir);
+
+        reloaded.Blocks["sql"].Inputs["aspireName"]!.GetValue<string>().Should().Be("sql");
+        reloaded.Blocks["sql"].Inputs["databases"]!.AsArray()[0]!.GetValue<string>().Should().Be("appdb");
+    }
+
+    [Fact]
     public void Load_throws_when_the_state_file_is_corrupt()
     {
         var stateDir = Directory.CreateDirectory(Path.Combine(_dir, ".aspireform"));

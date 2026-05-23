@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace AspireForm.State;
 
 /// <summary>The persisted last-known state of an AspireForm-managed project.</summary>
@@ -18,6 +20,9 @@ public sealed class BlockState
 
     /// <summary>The block kind: <c>resource</c> or <c>module</c>.</summary>
     public required string Kind { get; set; }
+
+    /// <summary>The provider-specific inputs as last applied. Used to detect configuration drift on re-plan.</summary>
+    public System.Text.Json.Nodes.JsonObject Inputs { get; set; } = new();
 
     /// <summary>Files emitted for this block, keyed by repo-relative path.</summary>
     public Dictionary<string, FileState> Files { get; set; } = new();

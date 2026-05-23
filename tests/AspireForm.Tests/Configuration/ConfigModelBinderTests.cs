@@ -80,6 +80,31 @@ public sealed class ConfigModelBinderTests
         act.Should().Throw<ConfigValidationException>().WithMessage("*ghost*");
     }
 
+    [Theory]
+    [InlineData("""{ "aspireform": { "version": "1", "project": "X", "apphost": "./X" } }""")]
+    [InlineData("""{ "aspireform": { "version": 1, "project": "X", "apphost": "./X" }, "modules": { "data": { "type": "ef-data", "preventDestroy": "no" } } }""")]
+    public void Reports_friendly_error_on_type_mismatch(string json)
+    {
+        var act = () => ConfigModelBinder.Bind(Obj(json));
+        act.Should().Throw<ConfigValidationException>();
+    }
+
+    [Fact]
+    public void Rejects_dependsOn_that_is_not_an_array()
+    {
+        var dom = Obj($$"""{ {{ValidHeader}}, "modules": { "data": { "type": "ef-data", "dependsOn": "sql" } }, "resources": { "sql": { "type": "sqlserver" } } }""");
+        var act = () => ConfigModelBinder.Bind(dom);
+        act.Should().Throw<ConfigValidationException>().WithMessage("*dependsOn*");
+    }
+
+    [Fact]
+    public void Rejects_dependsOn_with_a_non_string_element()
+    {
+        var dom = Obj($$"""{ {{ValidHeader}}, "resources": { "sql": { "type": "sqlserver" } }, "modules": { "data": { "type": "ef-data", "dependsOn": [1] } } }""");
+        var act = () => ConfigModelBinder.Bind(dom);
+        act.Should().Throw<ConfigValidationException>();
+    }
+
     [Fact]
     public void Profiles_are_captured_raw_without_validation()
     {

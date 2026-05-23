@@ -36,7 +36,7 @@ public static class ConfigModelBinder
             throw new ConfigValidationException("The configuration is missing the required 'aspireform' section.");
         }
 
-        var version = section["version"]?.GetValue<int>()
+        var version = TryGetValueStruct<int>(section["version"], "aspireform.version")
             ?? throw new ConfigValidationException("'aspireform.version' is required.");
         if (version != SupportedSchemaVersion)
         {
@@ -83,16 +83,39 @@ public static class ConfigModelBinder
         foreach (var (name, value) in modules)
         {
             var block = RequireObject(value, $"modules.{name}");
-            var dependsOn = (block["dependsOn"] as JsonArray)?
-                .Select(n => n?.GetValue<string>() ?? string.Empty)
-                .ToList() ?? [];
+            List<string> dependsOn;
+            if (block["dependsOn"] is not null)
+            {
+                if (block["dependsOn"] is not JsonArray dependsOnArray)
+                {
+                    throw new ConfigValidationException(
+                        $"'modules.{name}.dependsOn' must be an array.");
+                }
+
+                dependsOn = [];
+                for (var i = 0; i < dependsOnArray.Count; i++)
+                {
+                    var elem = TryGetValue<string>(dependsOnArray[i], $"modules.{name}.dependsOn[{i}]");
+                    if (string.IsNullOrWhiteSpace(elem))
+                    {
+                        throw new ConfigValidationException(
+                            $"'modules.{name}.dependsOn[{i}]' must be a non-empty string.");
+                    }
+
+                    dependsOn.Add(elem);
+                }
+            }
+            else
+            {
+                dependsOn = [];
+            }
 
             result[name] = new ModuleBlock
             {
                 Name = name,
                 Type = RequireNonEmptyString(block, "type", $"modules.{name}.type"),
                 DependsOn = dependsOn,
-                PreventDestroy = block["preventDestroy"]?.GetValue<bool>() ?? true,
+                PreventDestroy = TryGetValueStruct<bool>(block["preventDestroy"], $"modules.{name}.preventDestroy") ?? true,
                 Inputs = ExtractInputs(block, ModuleReservedKeys),
             };
         }
@@ -156,12 +179,57 @@ public static class ConfigModelBinder
 
     private static string RequireNonEmptyString(JsonObject obj, string key, string path)
     {
-        var value = obj[key]?.GetValue<string>();
+        var value = TryGetValue<string>(obj[key], path);
         if (string.IsNullOrWhiteSpace(value))
         {
             throw new ConfigValidationException($"'{path}' is required and must be a non-empty string.");
         }
 
         return value;
+    }
+
+    /// <summary>
+    /// Wraps <see cref="JsonNode.GetValue{T}"/> for reference types and rethrows any
+    /// <see cref="InvalidOperationException"/> as a <see cref="ConfigValidationException"/> with the config path.
+    /// </summary>
+    private static T? TryGetValue<T>(JsonNode? node, string path) where T : class
+    {
+        if (node is null)
+        {
+            return default;
+        }
+
+        try
+        {
+            return node.GetValue<T>();
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ConfigValidationException(
+                $"'{path}' could not be read as {typeof(T).Name}: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Wraps <see cref="JsonNode.GetValue{T}"/> for value types and rethrows any
+    /// <see cref="InvalidOperationException"/> as a <see cref="ConfigValidationException"/> with the config path.
+    /// Returns <see langword="null"/> when <paramref name="node"/> is <see langword="null"/>.
+    /// </summary>
+    private static T? TryGetValueStruct<T>(JsonNode? node, string path) where T : struct
+    {
+        if (node is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return node.GetValue<T>();
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ConfigValidationException(
+                $"'{path}' could not be read as {typeof(T).Name}: {ex.Message}", ex);
+        }
     }
 }
