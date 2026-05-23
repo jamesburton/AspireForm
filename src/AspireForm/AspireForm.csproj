@@ -12,9 +12,14 @@
     <ToolCommandName>aspireform</ToolCommandName>
     <PackageId>AspireForm</PackageId>
     <Version>0.1.0</Version>
-    <Authors>AspireForm</Authors>
+    <Authors>James Burton</Authors>
     <Description>Declarative construction and configuration of .NET Aspire applications.</Description>
+    <PackageProjectUrl>https://github.com/jamesburton/AspireForm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jamesburton/AspireForm</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>aspire;dotnet-aspire;iac;terraform;scaffolding;dnx-tool</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
