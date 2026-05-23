@@ -20,10 +20,27 @@ public sealed class CliSmokeTests
         return dir ?? throw new InvalidOperationException("Could not locate the repository root.");
     }
 
+    /// <summary>
+    /// The build configuration the test assembly was built with — derived from its own bin path
+    /// (<c>.../bin/&lt;Config&gt;/&lt;TFM&gt;/</c>). The smoke tests pass this through to <c>dotnet run</c>
+    /// so the subprocess looks in the same Debug/Release output as the test was built into. Without it,
+    /// CI building <c>--configuration Release</c> would have <c>dotnet run</c> default to Debug and
+    /// fail with "no such file or directory".
+    /// </summary>
+    private static string BuildConfiguration() =>
+        new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name ?? "Debug";
+
     private static (int ExitCode, string Output) RunTool(params string[] args)
     {
         var root = RepoRoot();
-        var allArgs = new List<string> { "run", "--no-build", "--project", Path.Combine(root, "src", "AspireForm"), "--" };
+        var allArgs = new List<string>
+        {
+            "run",
+            "--configuration", BuildConfiguration(),
+            "--no-build",
+            "--project", Path.Combine(root, "src", "AspireForm"),
+            "--",
+        };
         allArgs.AddRange(args);
 
         var startInfo = new ProcessStartInfo("dotnet")
