@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AspireForm/AspireForm.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AspireForm.Tests/AspireForm.Tests.csproj" />
+  </Folder>
+</Solution>
