@@ -82,4 +82,33 @@ public sealed class MarkerRegionTests
         var act = () => MarkerRegion.UpsertBeforeAnchor(noAnchor, "sql", "X", Anchor);
         act.Should().Throw<InvalidOperationException>().WithMessage("*anchor*");
     }
+
+    [Fact]
+    public void UpsertBeforeAnchor_with_candidate_list_picks_the_first_matching_anchor()
+    {
+        const string asyncHost = """
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            await builder.Build().RunAsync();
+            """;
+
+        string[] anchors = ["builder.Build().Run();", "await builder.Build().RunAsync();"];
+
+        var result = MarkerRegion.UpsertBeforeAnchor(asyncHost, "sql", "X", anchors);
+
+        result.Should().Contain("// <aspireform:block=sql>");
+        var sqlIdx = result.IndexOf("// <aspireform:block=sql>", StringComparison.Ordinal);
+        var anchorIdx = result.IndexOf("await builder.Build().RunAsync();", StringComparison.Ordinal);
+        sqlIdx.Should().BeLessThan(anchorIdx);
+    }
+
+    [Fact]
+    public void UpsertBeforeAnchor_with_candidate_list_throws_listing_all_candidates_when_none_match()
+    {
+        var act = () => MarkerRegion.UpsertBeforeAnchor("no anchors here\n", "sql", "X",
+            new[] { "builder.Build().Run();", "builder.Build().RunAsync();" });
+        act.Should().Throw<InvalidOperationException>()
+           .WithMessage("*builder.Build().Run()*")
+           .WithMessage("*builder.Build().RunAsync()*");
+    }
 }

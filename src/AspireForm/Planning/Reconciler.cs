@@ -38,7 +38,6 @@ public sealed class Reconciler
     {
         /* blockKind is reserved for future policy differences between Resource and Module blocks. */
         _ = blockKind;
-        _ = projectDir;
 
         if (blockKindAction == BlockActionKind.Noop)
         {
@@ -47,26 +46,43 @@ public sealed class Reconciler
 
         if (blockKindAction == BlockActionKind.Delete)
         {
-            return new BlockReconcileResult(BuildRemoveActions(previousState), []);
+            return new BlockReconcileResult(BuildRemoveActions(previousState, projectDir), []);
         }
 
         // CREATE or UPDATE: walk the provider's file actions and resolve each one.
         var resolved = new List<FileActionPlan>(providerPlan.FileActions.Count);
         foreach (var planned in providerPlan.FileActions)
         {
-            resolved.Add(ResolveFileAction(planned, blockName, previousState));
+            resolved.Add(ResolveFileAction(planned, blockName, previousState, projectDir));
         }
 
         return new BlockReconcileResult(resolved, providerPlan.CliActions);
     }
 
+    /// <summary>Resolves a relative or rooted path against <paramref name="projectDir"/>.</summary>
+    private static string ResolvePath(string path, string projectDir) =>
+        Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(projectDir, path));
+
+    // Candidate AppHost anchors tried in order when inserting a managed region into an AppHost file.
+    private static readonly string[] AppHostAnchors =
+    [
+        "builder.Build().Run();",
+        "await builder.Build().RunAsync();",
+        "builder.Build().RunAsync();",
+    ];
+
     private static FileActionPlan ResolveFileAction(
-        PlannedFileAction planned, string blockName, BlockState? previousState)
+        PlannedFileAction planned, string blockName, BlockState? previousState, string projectDir)
     {
-        var path = planned.Path;
+        // Resolve relative paths against the project directory so drift detection works regardless
+        // of the process working directory when aspireform plan is invoked.
+        var path = ResolvePath(planned.Path, projectDir);
         var exists = File.Exists(path);
         var beforeContent = exists ? File.ReadAllText(path) : null;
-        var previousFile = previousState?.Files.GetValueOrDefault(path);
+
+        // State may have been written with either the resolved or relative key; try both.
+        var previousFile = previousState?.Files.GetValueOrDefault(path)
+            ?? previousState?.Files.GetValueOrDefault(planned.Path);
 
         /* Drift is only meaningful when a prior state record exists for this file. */
         var driftDetected = previousFile is not null && exists
@@ -87,27 +103,24 @@ public sealed class Reconciler
             case OwnershipMode.Managed:
             {
                 var inner = planned.RenderContent();
-                string after;
 
                 if (exists)
                 {
-                    /* Upsert the marker region inside the existing file. */
-                    after = MarkerRegion.UpsertBeforeAnchor(beforeContent!, blockName, inner,
-                        anchor: "builder.Build().Run();");
+                    /* Upsert the marker region inside the existing file using whichever anchor is present. */
+                    var after = MarkerRegion.UpsertBeforeAnchor(beforeContent!, blockName, inner,
+                        anchors: AppHostAnchors);
+                    return new FileActionPlan(path, planned.OwnershipMode, planned.BlockMarker,
+                        Kind: FileActionKind.Modify, DriftDetected: driftDetected,
+                        BeforeContent: beforeContent, AfterContent: after);
                 }
                 else
                 {
-                    /* No file yet — synthesise a minimal AppHost scaffold to host the region. */
-                    const string hostScaffold =
-                        "var builder = DistributedApplication.CreateBuilder(args);\n\nbuilder.Build().Run();\n";
-                    after = MarkerRegion.UpsertBeforeAnchor(hostScaffold, blockName, inner,
-                        anchor: "builder.Build().Run();");
+                    /* File doesn't exist yet — emit only the marker region; don't synthesise a fake host. */
+                    var region = $"{MarkerRegion.OpenMarker(blockName)}\n{inner}\n{MarkerRegion.CloseMarker(blockName)}\n";
+                    return new FileActionPlan(path, planned.OwnershipMode, planned.BlockMarker,
+                        Kind: FileActionKind.Create, DriftDetected: false,
+                        BeforeContent: null, AfterContent: region);
                 }
-
-                return new FileActionPlan(path, planned.OwnershipMode, planned.BlockMarker,
-                    Kind: exists ? FileActionKind.Modify : FileActionKind.Create,
-                    DriftDetected: driftDetected,
-                    BeforeContent: beforeContent, AfterContent: after);
             }
 
             case OwnershipMode.Merge:
@@ -119,7 +132,7 @@ public sealed class Reconciler
         }
     }
 
-    private static IReadOnlyList<FileActionPlan> BuildRemoveActions(BlockState? previousState)
+    private static IReadOnlyList<FileActionPlan> BuildRemoveActions(BlockState? previousState, string projectDir)
     {
         if (previousState is null)
         {
@@ -127,14 +140,20 @@ public sealed class Reconciler
         }
 
         var removals = new List<FileActionPlan>(previousState.Files.Count);
-        foreach (var (path, fileState) in previousState.Files)
+        foreach (var (relativePath, fileState) in previousState.Files)
         {
+            // Resolve the stored path (which may be relative or absolute) to an absolute path.
+            var path = ResolvePath(relativePath, projectDir);
+
             var mode = Enum.TryParse<OwnershipMode>(fileState.OwnershipMode, ignoreCase: true, out var parsed)
                 ? parsed : OwnershipMode.Managed;
 
+            // Scaffold files are developer-owned: deleting them on block-delete is surprising.
+            var kind = mode == OwnershipMode.Scaffold ? FileActionKind.Skip : FileActionKind.Remove;
+
             removals.Add(new FileActionPlan(
                 Path: path, OwnershipMode: mode, BlockMarker: string.Empty,
-                Kind: FileActionKind.Remove, DriftDetected: false,
+                Kind: kind, DriftDetected: false,
                 BeforeContent: File.Exists(path) ? File.ReadAllText(path) : null,
                 AfterContent: null));
         }

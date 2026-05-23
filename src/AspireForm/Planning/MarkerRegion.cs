@@ -56,6 +56,42 @@ public static class MarkerRegion
         return string.Concat(text.AsSpan(0, lineStart), newRegionWithGap, text.AsSpan(lineStart));
     }
 
+    /// <summary>
+    /// Same as <see cref="UpsertBeforeAnchor(string, string, string, string)"/> but tries each
+    /// candidate anchor in order. When the region already exists its inner content is replaced and
+    /// the first anchor in <paramref name="anchors"/> is used (the anchor is irrelevant for updates).
+    /// Throws <see cref="InvalidOperationException"/> when no existing region is found and none of
+    /// the candidates appear in <paramref name="text"/>.
+    /// </summary>
+    /// <param name="text">The full file text to operate on.</param>
+    /// <param name="blockName">The name of the block region to upsert.</param>
+    /// <param name="innerContent">The content to place between the open and close marker lines.</param>
+    /// <param name="anchors">Candidate anchor strings tried in order.</param>
+    /// <returns>The updated file text.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the block region does not already exist and none of the
+    /// <paramref name="anchors"/> can be found in <paramref name="text"/>.
+    /// </exception>
+    public static string UpsertBeforeAnchor(string text, string blockName, string innerContent, IReadOnlyList<string> anchors)
+    {
+        // If the region already exists no anchor is needed — delegate to the single-anchor overload.
+        if (RegionRegex(blockName).IsMatch(text))
+        {
+            return UpsertBeforeAnchor(text, blockName, innerContent, anchors[0]);
+        }
+
+        foreach (var anchor in anchors)
+        {
+            if (text.Contains(anchor, StringComparison.Ordinal))
+            {
+                return UpsertBeforeAnchor(text, blockName, innerContent, anchor);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Cannot insert region '{blockName}': none of the candidate anchors found ({string.Join(", ", anchors.Select(a => $"'{a}'"))}).");
+    }
+
     /// <summary>Removes the named region if present; otherwise returns <paramref name="text"/> unchanged.</summary>
     /// <param name="text">The full file text to operate on.</param>
     /// <param name="blockName">The name of the block region to remove.</param>

@@ -135,4 +135,73 @@ public sealed class ReconcilerTests : IDisposable
             new ProviderPlan(), previousState: null, projectDir: _dir);
         actions.FileActions.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Provider_emitting_a_relative_path_resolves_against_projectDir()
+    {
+        // Write a file at <projectDir>/relative/file.cs
+        var relative = Path.Combine("relative", "file.cs");
+        var absolute = Path.Combine(_dir, relative);
+        Directory.CreateDirectory(Path.GetDirectoryName(absolute)!);
+        File.WriteAllText(absolute, "// pre-existing");
+
+        var providerPlan = new ProviderPlan
+        {
+            FileActions = [Action(relative, OwnershipMode.Scaffold, "// new")],
+        };
+
+        var actions = _reconciler.Reconcile("sql", BlockKind.Resource, BlockActionKind.Create,
+            providerPlan, previousState: null, projectDir: _dir);
+
+        // File existed under projectDir, so Scaffold mode skips.
+        actions.FileActions[0].Kind.Should().Be(FileActionKind.Skip);
+    }
+
+    [Fact]
+    public void Managed_file_that_does_not_exist_proposes_create_with_just_the_marker_region()
+    {
+        var path = Path.Combine(_dir, "AppHost.cs");
+        var providerPlan = new ProviderPlan
+        {
+            FileActions = [Action(path, OwnershipMode.Managed, "var sql = builder.AddSqlServer(\"sql\");")],
+        };
+
+        var actions = _reconciler.Reconcile("sql", BlockKind.Resource, BlockActionKind.Create,
+            providerPlan, previousState: null, projectDir: _dir);
+
+        var fa = actions.FileActions[0];
+        fa.Kind.Should().Be(FileActionKind.Create);
+        fa.AfterContent.Should().Contain("// <aspireform:block=sql>");
+        fa.AfterContent.Should().Contain("var sql = builder.AddSqlServer(\"sql\");");
+
+        // No synthesised host scaffold:
+        fa.AfterContent.Should().NotContain("CreateBuilder(args)");
+        fa.AfterContent.Should().NotContain("Build().Run");
+    }
+
+    [Fact]
+    public void DELETE_block_skips_scaffold_files_and_removes_managed_files()
+    {
+        var managedPath = Path.Combine(_dir, "managed.cs");
+        var scaffoldPath = Path.Combine(_dir, "scaffold.cs");
+        File.WriteAllText(managedPath, "m");
+        File.WriteAllText(scaffoldPath, "s");
+
+        var prev = new BlockState
+        {
+            Type = "ef-data", Kind = "module",
+            Files =
+            {
+                [managedPath] = new FileState { OwnershipMode = "managed", Checksum = DriftDetector.ComputeChecksum(managedPath) },
+                [scaffoldPath] = new FileState { OwnershipMode = "scaffold", Checksum = DriftDetector.ComputeChecksum(scaffoldPath) },
+            },
+        };
+
+        var actions = _reconciler.Reconcile("data", BlockKind.Module, BlockActionKind.Delete,
+            new ProviderPlan(), prev, _dir);
+
+        actions.FileActions.Should().HaveCount(2);
+        actions.FileActions.Single(f => f.Path == managedPath).Kind.Should().Be(FileActionKind.Remove);
+        actions.FileActions.Single(f => f.Path == scaffoldPath).Kind.Should().Be(FileActionKind.Skip);
+    }
 }

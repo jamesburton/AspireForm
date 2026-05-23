@@ -52,5 +52,10 @@ public sealed class PlanCommand : Command<PlanCommand.Settings>
             Console.Error.WriteLine($"Plan error: {ex.Message}");
             return 1;
         }
+        catch (AspireForm.State.StateException ex)
+        {
+            Console.Error.WriteLine($"State error: {ex.Message}");
+            return 1;
+        }
     }
 }

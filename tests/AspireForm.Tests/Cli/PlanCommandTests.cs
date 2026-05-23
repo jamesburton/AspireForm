@@ -69,4 +69,23 @@ public sealed class PlanCommandTests : IDisposable
         exitCode.Should().Be(1);
         stderr.Should().Contain("No AspireForm configuration");
     }
+
+    [Fact]
+    public void Plan_exits_nonzero_with_an_error_when_state_file_is_corrupt()
+    {
+        File.WriteAllText(Path.Combine(_dir, "aspireform.yaml"), """
+            aspireform:
+              version: 1
+              project: X
+              apphost: ./X.AppHost
+            """);
+
+        var stateDir = Directory.CreateDirectory(Path.Combine(_dir, ".aspireform"));
+        File.WriteAllText(Path.Combine(stateDir.FullName, "state.json"), "{ not json");
+
+        var (exitCode, _, stderr) = RunPlan("--project-dir", _dir);
+
+        exitCode.Should().Be(1);
+        stderr.Should().Contain("State error");
+    }
 }
