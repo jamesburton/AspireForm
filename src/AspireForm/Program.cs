@@ -12,6 +12,9 @@ app.Configure(config =>
 
     config.AddCommand<DoctorCommand>("doctor")
         .WithDescription("Check that AspireForm's prerequisites are installed.");
+
+    config.AddCommand<PlanCommand>("plan")
+        .WithDescription("Show the reconciliation diff between desired and current state.");
 });
 
 return await app.RunAsync(args);
