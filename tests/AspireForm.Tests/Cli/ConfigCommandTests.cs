@@ -5,6 +5,7 @@ using Xunit;
 
 namespace AspireForm.Tests.Cli;
 
+[Collection(nameof(ConsoleCaptureCollection))]
 public sealed class ConfigCommandTests : IDisposable
 {
     private readonly string _dir = Directory.CreateTempSubdirectory("aspireform-config-cmd").FullName;

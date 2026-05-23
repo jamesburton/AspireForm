@@ -5,6 +5,7 @@ using Xunit;
 
 namespace AspireForm.Tests.Cli;
 
+[Collection(nameof(ConsoleCaptureCollection))]
 public sealed class DoctorCommandTests
 {
     private static (int ExitCode, string StdOut, string StdErr) RunDoctor()
