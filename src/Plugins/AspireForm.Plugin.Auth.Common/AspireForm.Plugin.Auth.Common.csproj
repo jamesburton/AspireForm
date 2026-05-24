@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AspireForm.Plugin.Auth.Common</RootNamespace>
+    <AssemblyName>AspireForm.Plugin.Auth.Common</AssemblyName>
+    <PackageId>AspireForm.Plugin.Auth.Common</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>James Burton</Authors>
+    <Description>Shared substrate library for AspireForm auth plugins (ApiKey, MagicLink, Entra).</Description>
+    <PackageProjectUrl>https://github.com/jamesburton/AspireForm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jamesburton/AspireForm</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>aspireform;auth;substrate</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
