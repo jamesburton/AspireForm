@@ -16,6 +16,9 @@ app.Configure(config =>
     config.AddCommand<PlanCommand>("plan")
         .WithDescription("Show the reconciliation diff between desired and current state.");
 
+    config.AddCommand<NewCommand>("new")
+        .WithDescription("Scaffold a new Aspire solution and starter aspireform.yaml.");
+
     config.AddCommand<ApplyCommand>("apply")
         .WithDescription("Execute the plan after an approval gate.");
 
