@@ -18,6 +18,9 @@ app.Configure(config =>
 
     config.AddCommand<ApplyCommand>("apply")
         .WithDescription("Execute the plan after an approval gate.");
+
+    config.AddCommand<DestroyCommand>("destroy")
+        .WithDescription("Destroy one block (or all blocks when no argument is supplied).");
 });
 
 return await app.RunAsync(args);
