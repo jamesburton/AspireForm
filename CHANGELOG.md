@@ -4,6 +4,39 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-05-24
+
+Plan 3 of 3 — Core Engine complete. The full plan/apply reconciliation loop now ships.
+
+### Added
+
+- **`aspireform apply`** — executes the plan after an interactive approval gate (or
+  `--yes` to skip). Persists `.aspireform/state.json` after each successful block so partial
+  progress survives later failures. Refuses to proceed when drift is detected unless
+  `--force-drift` is supplied.
+- **`aspireform destroy [block]`** — removes one block (or every block in state when no
+  argument is given). Module blocks are destroy-protected; pass `--allow-module-destroy` to
+  override.
+- **`aspireform new <name>`** — scaffolds a new Aspire AppHost (via `dotnet new aspire-apphost`)
+  and writes a starter `aspireform.yaml`.
+- **`aspireform add <type> [name]`** — appends a Resource (default) or Module (`--module`) block
+  to the config. Comments and original formatting are not preserved (the config is round-tripped
+  through the canonical DOM and re-serialised).
+- **`aspireform import <block>`** — adopts an existing setup into AspireForm state without
+  executing, recording each provider-emitted file path with its current checksum.
+- **`aspireform state list`** and **`aspireform state show <block>`** — inspect the tracked state.
+- `IAspireCli.RunAsync(args, workingDir)` — the executor's shell-out seam to the `aspire` CLI.
+- File-snapshot end-to-end test for `apply` and a Docker-gated Aspire-Test-Framework boot test.
+
+### Notes
+
+- `BlockState.Inputs` now records the resolved inputs the executor saw, enabling Plan 3's
+  drift / re-apply logic and future change-detection.
+- State paths are stored repo-relative for git portability; the executor performs the
+  absolute↔relative conversion via `PathUtilities`.
+- The `ef-data` Module remains intentionally minimal (DbContext scaffold + a managed marker
+  region in `AppHost.cs`). Full DI / migration wiring is a richer-reference concern.
+
 ## [0.1.0] - 2026-05-23
 
 Initial release. Foundation of the AspireForm Core Engine (Plan 1 of 3).
