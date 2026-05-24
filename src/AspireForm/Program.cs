@@ -39,6 +39,19 @@ app.Configure(config =>
         state.AddCommand<StateShowCommand>("show")
             .WithDescription("Show one block's tracked state as JSON.");
     });
+
+    config.AddBranch("plugin", plugin =>
+    {
+        plugin.SetDescription("Manage AspireForm plugins (NuGet plugin packages).");
+        plugin.AddCommand<PluginListCommand>("list")
+            .WithDescription("List installed plugins.");
+        plugin.AddCommand<PluginInstallCommand>("install")
+            .WithDescription("Install a plugin by name or package id.");
+        plugin.AddCommand<PluginUpdateCommand>("update")
+            .WithDescription("Update an installed plugin to the latest version.");
+        plugin.AddCommand<PluginRemoveCommand>("remove")
+            .WithDescription("Remove a plugin from the lockfile.");
+    });
 });
 
 return await app.RunAsync(args);
