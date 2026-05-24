@@ -1,0 +1,9 @@
+{
+  "name": "Hangfire",
+  "version": "0.1.0",
+  "minAspireFormVersion": "0.3.0",
+  "assemblyName": "AspireForm.Plugin.Hangfire",
+  "providers": [
+    { "type": "hangfire", "kind": "module", "className": "AspireForm.Plugin.Hangfire.HangfireModuleProvider" }
+  ]
+}
