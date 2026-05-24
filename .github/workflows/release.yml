@@ -26,6 +26,9 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      - name: Install Aspire project templates
+        run: dotnet new install Aspire.ProjectTemplates --force
+
       - name: Test
         # Run the xUnit v3 MTP runner directly. `dotnet test` is flaky against
         # MTP-only test projects on some hosts; running the test exe is the
