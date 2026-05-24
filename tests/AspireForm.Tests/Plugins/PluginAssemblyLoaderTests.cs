@@ -79,8 +79,11 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
             }
             """;
 
+        // Filter out assemblies whose Location no longer exists. On Linux CI, temp dirs from
+        // previous test iterations may have been cleaned up, leaving stale Location paths that
+        // would crash Roslyn's compile when it tries to open them.
         var refs = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+            .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location) && File.Exists(a.Location))
             .Select(a => MetadataReference.CreateFromFile(a.Location))
             .Cast<MetadataReference>()
             .ToList();
