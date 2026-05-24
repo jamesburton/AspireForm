@@ -1,0 +1,13 @@
+{
+  "name": "Auth.ApiKey",
+  "version": "0.1.0",
+  "minAspireFormVersion": "0.3.0",
+  "assemblyName": "AspireForm.Plugin.Auth.ApiKey",
+  "providers": [
+    {
+      "type": "auth-apikey",
+      "kind": "module",
+      "className": "AspireForm.Plugin.Auth.ApiKey.ApiKeyAuthModuleProvider"
+    }
+  ]
+}
