@@ -27,7 +27,8 @@ app.Configure(config =>
         state.SetDescription("Inspect AspireForm's tracked state.");
         state.AddCommand<StateListCommand>("list")
             .WithDescription("List all tracked blocks.");
-        // 'show' subcommand added in Task 8.
+        state.AddCommand<StateShowCommand>("show")
+            .WithDescription("Show one block's tracked state as JSON.");
     });
 });
 
