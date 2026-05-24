@@ -38,16 +38,10 @@ public sealed class PluginAssemblyLoader
             ?? throw new PluginContractException(
                 $"Plugin '{manifest.Name}': could not locate '{assemblyName}.dll' under '{packageDirectory}/lib/'.");
 
-        EnsureResolvingHandlerAttached();
-
-        // Register an AssemblyDependencyResolver for this plugin (uses <assembly>.deps.json when present).
-        _resolvers.TryAdd(assemblyPath, new AssemblyDependencyResolver(assemblyPath));
-        _pluginDirectories.Add(Path.GetDirectoryName(assemblyPath)!);
-
         Assembly assembly;
         try
         {
-            assembly = Context.LoadFromAssemblyPath(assemblyPath);
+            assembly = LoadAndRegister(assemblyPath);
         }
         catch (Exception ex)
         {
@@ -78,6 +72,44 @@ public sealed class PluginAssemblyLoader
         }
 
         return providers;
+    }
+
+    /// <summary>
+    /// Loads <paramref name="assemblyPath"/> into the plugin ALC and returns every public, instantiable
+    /// <see cref="IProvider"/> implementation it contains. Used for script plugins (no manifest).
+    /// </summary>
+    /// <param name="assemblyPath">Absolute path to the compiled plugin assembly.</param>
+    /// <returns>A list of instantiated <see cref="IProvider"/> implementations found by reflection.</returns>
+    public IReadOnlyList<IProvider> LoadProvidersByDiscovery(string assemblyPath)
+    {
+        var assembly = LoadAndRegister(assemblyPath);
+
+        var providerTypes = assembly.GetTypes()
+            .Where(t => t.IsPublic && !t.IsAbstract && !t.IsInterface
+                     && typeof(IProvider).IsAssignableFrom(t)
+                     && t.GetConstructor(Type.EmptyTypes) is not null)
+            .ToList();
+
+        var providers = new List<IProvider>(providerTypes.Count);
+        foreach (var type in providerTypes)
+        {
+            providers.Add((IProvider)Activator.CreateInstance(type)!);
+        }
+
+        return providers;
+    }
+
+    /* Registers the assembly's dependency resolver, adds its directory to the plugin-directories bag,
+       and loads it into the shared ALC. Called by both LoadProviders and LoadProvidersByDiscovery. */
+    private static Assembly LoadAndRegister(string assemblyPath)
+    {
+        EnsureResolvingHandlerAttached();
+
+        // Register an AssemblyDependencyResolver for this assembly (uses <assembly>.deps.json when present).
+        _resolvers.TryAdd(assemblyPath, new AssemblyDependencyResolver(assemblyPath));
+        _pluginDirectories.Add(Path.GetDirectoryName(assemblyPath)!);
+
+        return Context.LoadFromAssemblyPath(assemblyPath);
     }
 
     /* Attaches the Resolving handler to Context exactly once per process. */

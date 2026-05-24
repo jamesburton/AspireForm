@@ -40,8 +40,10 @@ public sealed class PluginManager
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-        // Fast path: all block types are built-in — no lockfile touched.
-        if (unknownTypes.Count == 0)
+        // Skip everything when there's nothing to do (no plugin types, no scripts).
+        var scriptsDir = Path.Combine(projectDir, ".aspireform", "scripts");
+        var hasScripts = Directory.Exists(scriptsDir) && Directory.EnumerateFiles(scriptsDir, "*.cs").Any();
+        if (unknownTypes.Count == 0 && !hasScripts)
         {
             return builtIn;
         }
@@ -49,6 +51,27 @@ public sealed class PluginManager
         var lockfile = PluginLockfile.Load(projectDir);
         var pluginProviders = new List<IProvider>();
         var lockfileDirty = false;
+
+        // Script plugins: compile + load every .cs in .aspireform/scripts/.
+        if (Directory.Exists(scriptsDir))
+        {
+            var compiler = new ScriptPluginCompiler();
+            foreach (var scriptPath in Directory.EnumerateFiles(scriptsDir, "*.cs", SearchOption.TopDirectoryOnly))
+            {
+                var result = await compiler.CompileAsync(scriptPath, projectDir, cancellationToken);
+                if (!result.Success)
+                {
+                    throw new PluginContractException(
+                        $"Script plugin '{Path.GetFileName(scriptPath)}' failed to compile: {result.ErrorMessage}");
+                }
+
+                pluginProviders.AddRange(_loader.LoadProvidersByDiscovery(result.AssemblyPath!));
+            }
+        }
+
+        // Script-provided block types should NOT trigger NuGet auto-restore.
+        var scriptProvidedTypes = pluginProviders.Select(p => p.Type).ToHashSet(StringComparer.Ordinal);
+        unknownTypes = unknownTypes.Where(t => !scriptProvidedTypes.Contains(t)).ToList();
 
         foreach (var type in unknownTypes)
         {

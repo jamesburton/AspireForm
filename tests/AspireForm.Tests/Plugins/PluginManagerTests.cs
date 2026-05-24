@@ -114,6 +114,36 @@ public sealed class PluginManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task DiscoverAndLoadAsync_compiles_and_loads_a_script_plugin()
+    {
+        var scriptsDir = Path.Combine(_dir, ".aspireform", "scripts");
+        Directory.CreateDirectory(scriptsDir);
+        await File.WriteAllTextAsync(Path.Combine(scriptsDir, "my-vertical.cs"), """
+            using AspireForm.Providers;
+            namespace MyScript;
+            public sealed class MyVerticalProvider : IProvider
+            {
+                public string Type => "my-vertical";
+                public BlockKind Kind => BlockKind.Module;
+                public ProviderPlan Plan(PlanContext context) => new();
+            }
+            """);
+
+        var model = new ProjectModel
+        {
+            AspireForm = new AspireFormHeader { Version = 1, Project = "X", AppHost = "X.AppHost" },
+            Modules = new Dictionary<string, ModuleBlock>
+            {
+                ["mine"] = new() { Name = "mine", Type = "my-vertical", Inputs = new() },
+            },
+        };
+
+        var registry = await new PluginManager().DiscoverAndLoadAsync(model, _dir);
+
+        registry.Get("my-vertical").Type.Should().Be("my-vertical");
+    }
+
+    [Fact]
     public async Task DiscoverAndLoadAsync_preserves_pre_existing_lockfile_entries()
     {
         // Pre-seed lockfile with an entry that's not needed (no model block references it).
