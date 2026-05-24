@@ -15,6 +15,9 @@ app.Configure(config =>
 
     config.AddCommand<PlanCommand>("plan")
         .WithDescription("Show the reconciliation diff between desired and current state.");
+
+    config.AddCommand<ApplyCommand>("apply")
+        .WithDescription("Execute the plan after an approval gate.");
 });
 
 return await app.RunAsync(args);
