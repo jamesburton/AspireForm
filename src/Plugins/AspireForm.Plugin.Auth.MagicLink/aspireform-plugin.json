@@ -1,0 +1,13 @@
+{
+  "name": "Auth.MagicLink",
+  "version": "0.1.0",
+  "minAspireFormVersion": "0.3.0",
+  "assemblyName": "AspireForm.Plugin.Auth.MagicLink",
+  "providers": [
+    {
+      "type": "auth-magiclink",
+      "kind": "module",
+      "className": "AspireForm.Plugin.Auth.MagicLink.MagicLinkAuthModuleProvider"
+    }
+  ]
+}

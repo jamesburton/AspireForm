@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AspireForm.Plugin.Auth.MagicLink</RootNamespace>
+    <AssemblyName>AspireForm.Plugin.Auth.MagicLink</AssemblyName>
+    <PackageId>AspireForm.Plugin.Auth.MagicLink</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>James Burton</Authors>
+    <Description>AspireForm plugin: passwordless magic-link auth Module — scaffolds setup helper + AppHost wiring comment.</Description>
+    <PackageProjectUrl>https://github.com/jamesburton/AspireForm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jamesburton/AspireForm</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageType>AspireFormPlugin</PackageType>
+    <PackageTags>aspireform;aspireform-plugin;auth;magiclink;passwordless</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../AspireForm/AspireForm.csproj" PrivateAssets="all" />
+    <ProjectReference Include="../AspireForm.Plugin.Auth.Common/AspireForm.Plugin.Auth.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="aspireform-plugin.json" Pack="true" PackagePath="\" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
