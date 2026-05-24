@@ -19,6 +19,9 @@ app.Configure(config =>
     config.AddCommand<NewCommand>("new")
         .WithDescription("Scaffold a new Aspire solution and starter aspireform.yaml.");
 
+    config.AddCommand<AddCommand>("add")
+        .WithDescription("Append a Resource (default) or Module block to the AspireForm config file. Comments and original formatting are not preserved.");
+
     config.AddCommand<ApplyCommand>("apply")
         .WithDescription("Execute the plan after an approval gate.");
 
