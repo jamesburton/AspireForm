@@ -7,6 +7,7 @@
     <Project Path="src/Plugins/AspireForm.Plugin.Hangfire/AspireForm.Plugin.Hangfire.csproj" />
     <Project Path="src/Plugins/AspireForm.Plugin.Mailpit/AspireForm.Plugin.Mailpit.csproj" />
     <Project Path="src/Plugins/AspireForm.Plugin.Redis/AspireForm.Plugin.Redis.csproj" />
+    <Project Path="src/Plugins/AspireForm.Plugin.Reporting/AspireForm.Plugin.Reporting.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AspireForm.Tests/AspireForm.Tests.csproj" />
@@ -16,5 +17,6 @@
     <Project Path="tests/Plugins/AspireForm.Plugin.Hangfire.Tests/AspireForm.Plugin.Hangfire.Tests.csproj" />
     <Project Path="tests/Plugins/AspireForm.Plugin.Mailpit.Tests/AspireForm.Plugin.Mailpit.Tests.csproj" />
     <Project Path="tests/Plugins/AspireForm.Plugin.Redis.Tests/AspireForm.Plugin.Redis.Tests.csproj" />
+    <Project Path="tests/Plugins/AspireForm.Plugin.Reporting.Tests/AspireForm.Plugin.Reporting.Tests.csproj" />
   </Folder>
 </Solution>

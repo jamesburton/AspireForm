@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AspireForm.Plugin.Reporting</RootNamespace>
+    <AssemblyName>AspireForm.Plugin.Reporting</AssemblyName>
+    <PackageId>AspireForm.Plugin.Reporting</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>James Burton</Authors>
+    <Description>AspireForm plugin: DAB-curated read-only reports — declared database views become REST/GraphQL endpoints.</Description>
+    <PackageProjectUrl>https://github.com/jamesburton/AspireForm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jamesburton/AspireForm</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageType>AspireFormPlugin</PackageType>
+    <PackageTags>aspireform;aspireform-plugin;reporting;dab;views;graphql</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../AspireForm/AspireForm.csproj" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="aspireform-plugin.json" Pack="true" PackagePath="\" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
