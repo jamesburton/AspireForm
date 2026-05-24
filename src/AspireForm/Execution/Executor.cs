@@ -32,6 +32,9 @@ public sealed class Executor
         ExecuteOptions options,
         CancellationToken cancellationToken = default)
     {
+        // Clone first — NewState in any return path is the executor's owned copy, never aliasing the caller's input.
+        var state = CloneState(prevState);
+
         // Drift gate: refuse if any file has drifted and ForceDrift is not set.
         if (!options.ForceDrift)
         {
@@ -43,12 +46,11 @@ public sealed class Executor
                 {
                     Success = false,
                     FailureMessage = $"Refusing to apply: drift detected on {drifted.Count} file(s): {paths}. Re-run with --force-drift to override.",
-                    NewState = prevState,
+                    NewState = state,
                 };
             }
         }
 
-        var state = CloneState(prevState);
         var blocksApplied = 0;
 
         foreach (var block in plan.Blocks)
@@ -199,7 +201,9 @@ public sealed class Executor
     {
         if (model.Resources.TryGetValue(blockName, out var r)) return r.Type;
         if (model.Modules.TryGetValue(blockName, out var m)) return m.Type;
-        return string.Empty;
+        // Unreachable: caller only invokes this for blocks present in the desired model (Create/Update).
+        // Failing loud here protects future refactors from silently writing corrupt state records.
+        throw new InvalidOperationException($"Block '{blockName}' is not declared in the project model.");
     }
 
     private static System.Text.Json.Nodes.JsonObject LookupBlockInputs(ProjectModel model, string blockName)

@@ -47,7 +47,7 @@ public sealed class NewCommand : AsyncCommand<NewCommand.Settings>
 
         Console.Out.WriteLine($"Created {projectRoot}");
         Console.Out.WriteLine($"  - {appHostName}/ (Aspire AppHost project)");
-        Console.Out.WriteLine($"  - aspireform.yaml (starter)");
+        Console.Out.WriteLine("  - aspireform.yaml (starter)");
         return 0;
     }
 

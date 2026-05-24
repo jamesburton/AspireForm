@@ -27,7 +27,7 @@ AspireForm is a zero-install .NET tool. With the .NET 10 SDK present:
 | Command | Description |
 |---|---|
 | `aspireform new <name>` | Scaffold a new Aspire solution + a starter `aspireform.yaml`. |
-| `aspireform add <type> [name]` | Append a Resource (or Module via `--module`) block to the config. |
+| `aspireform add <type> [name]` | Append a Resource (or Module via `--module`) block to the config (comments and formatting are not preserved). |
 | `aspireform config` | Print the fully merged, interpolated desired-state configuration. |
 | `aspireform plan` | Show the reconciliation diff between desired and current state. |
 | `aspireform apply` | Execute the plan after an approval gate (skip with `--yes`). |
