@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Install Aspire project templates
+        run: dotnet new install Aspire.ProjectTemplates --force
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (entire solution incl. all plugins)
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test (main test project)
+        run: dotnet run --project tests/AspireForm.Tests --configuration Release --no-build
+
+      - name: Test (per-plugin test projects)
+        run: |
+          for proj in tests/Plugins/*/*.csproj; do
+            echo "Running tests for $proj"
+            dotnet run --project "$(dirname "$proj")" --configuration Release --no-build
+          done
