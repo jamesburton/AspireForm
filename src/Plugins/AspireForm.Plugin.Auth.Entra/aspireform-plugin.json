@@ -1,0 +1,13 @@
+{
+  "name": "Auth.Entra",
+  "version": "0.1.0",
+  "minAspireFormVersion": "0.3.0",
+  "assemblyName": "AspireForm.Plugin.Auth.Entra",
+  "providers": [
+    {
+      "type": "auth-entra",
+      "kind": "module",
+      "className": "AspireForm.Plugin.Auth.Entra.EntraAuthModuleProvider"
+    }
+  ]
+}

@@ -5,6 +5,7 @@
   <Folder Name="/src/Plugins/">
     <Project Path="src/Plugins/AspireForm.Plugin.Auth.ApiKey/AspireForm.Plugin.Auth.ApiKey.csproj" />
     <Project Path="src/Plugins/AspireForm.Plugin.Auth.Common/AspireForm.Plugin.Auth.Common.csproj" />
+    <Project Path="src/Plugins/AspireForm.Plugin.Auth.Entra/AspireForm.Plugin.Auth.Entra.csproj" />
     <Project Path="src/Plugins/AspireForm.Plugin.Auth.MagicLink/AspireForm.Plugin.Auth.MagicLink.csproj" />
     <Project Path="src/Plugins/AspireForm.Plugin.DAB/AspireForm.Plugin.DAB.csproj" />
     <Project Path="src/Plugins/AspireForm.Plugin.Hangfire/AspireForm.Plugin.Hangfire.csproj" />
@@ -18,6 +19,7 @@
   <Folder Name="/tests/Plugins/">
     <Project Path="tests/Plugins/AspireForm.Plugin.Auth.ApiKey.Tests/AspireForm.Plugin.Auth.ApiKey.Tests.csproj" />
     <Project Path="tests/Plugins/AspireForm.Plugin.Auth.Common.Tests/AspireForm.Plugin.Auth.Common.Tests.csproj" />
+    <Project Path="tests/Plugins/AspireForm.Plugin.Auth.Entra.Tests/AspireForm.Plugin.Auth.Entra.Tests.csproj" />
     <Project Path="tests/Plugins/AspireForm.Plugin.Auth.MagicLink.Tests/AspireForm.Plugin.Auth.MagicLink.Tests.csproj" />
     <Project Path="tests/Plugins/AspireForm.Plugin.DAB.Tests/AspireForm.Plugin.DAB.Tests.csproj" />
     <Project Path="tests/Plugins/AspireForm.Plugin.Hangfire.Tests/AspireForm.Plugin.Hangfire.Tests.csproj" />

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AspireForm.Plugin.Auth.Entra.Tests</RootNamespace>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2" />
+    <PackageReference Include="AwesomeAssertions" Version="9.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Plugins/AspireForm.Plugin.Auth.Entra/AspireForm.Plugin.Auth.Entra.csproj" />
+    <ProjectReference Include="../../../src/Plugins/AspireForm.Plugin.Auth.Common/AspireForm.Plugin.Auth.Common.csproj" />
+    <ProjectReference Include="../../../src/AspireForm/AspireForm.csproj" />
+  </ItemGroup>
+</Project>
