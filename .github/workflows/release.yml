@@ -4,12 +4,14 @@ on:
   push:
     tags:
       - 'v*'
+      - 'plugin/*/v*'
 
 permissions:
   contents: write
 
 jobs:
   publish:
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -62,3 +64,59 @@ jobs:
         with:
           generate_release_notes: true
           files: ./artifacts/*.nupkg
+
+  publish-plugin:
+    if: startsWith(github.ref, 'refs/tags/plugin/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Install Aspire project templates
+        run: dotnet new install Aspire.ProjectTemplates --force
+
+      - name: Derive plugin name and version
+        id: parse
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          # tag format: plugin/<Name>/v<version>
+          name="${tag#plugin/}"
+          name="${name%/v*}"
+          version="${tag##*/v}"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Restore + Build the plugin
+        run: |
+          dotnet restore "src/Plugins/AspireForm.Plugin.${{ steps.parse.outputs.name }}/AspireForm.Plugin.${{ steps.parse.outputs.name }}.csproj"
+          dotnet build "src/Plugins/AspireForm.Plugin.${{ steps.parse.outputs.name }}/AspireForm.Plugin.${{ steps.parse.outputs.name }}.csproj" \
+            --configuration Release --no-restore
+
+      - name: Pack
+        run: |
+          dotnet pack "src/Plugins/AspireForm.Plugin.${{ steps.parse.outputs.name }}/AspireForm.Plugin.${{ steps.parse.outputs.name }}.csproj" \
+            --configuration Release --no-build --output ./artifacts \
+            /p:Version=${{ steps.parse.outputs.version }}
+
+      - name: Publish to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "./artifacts/AspireForm.Plugin.${{ steps.parse.outputs.name }}.${{ steps.parse.outputs.version }}.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AspireForm.Plugin.${{ steps.parse.outputs.name }} ${{ steps.parse.outputs.version }}
+          generate_release_notes: true
+          files: ./artifacts/AspireForm.Plugin.${{ steps.parse.outputs.name }}.${{ steps.parse.outputs.version }}.nupkg
