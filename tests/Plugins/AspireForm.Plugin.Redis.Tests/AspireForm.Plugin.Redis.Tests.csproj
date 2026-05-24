@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AspireForm.Plugin.Redis.Tests</RootNamespace>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2" />
+    <PackageReference Include="AwesomeAssertions" Version="9.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Plugins/AspireForm.Plugin.Redis/AspireForm.Plugin.Redis.csproj" />
+    <!-- AspireForm.Providers types (IProvider, PlanContext, etc.) are used directly in tests;
+         the plugin's PrivateAssets="all" makes AspireForm non-transitive, so we reference it explicitly. -->
+    <ProjectReference Include="../../../src/AspireForm/AspireForm.csproj" />
+  </ItemGroup>
+</Project>

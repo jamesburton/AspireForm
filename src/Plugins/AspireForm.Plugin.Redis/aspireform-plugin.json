@@ -1,0 +1,13 @@
+{
+  "name": "Redis",
+  "version": "0.1.0",
+  "minAspireFormVersion": "0.3.0",
+  "assemblyName": "AspireForm.Plugin.Redis",
+  "providers": [
+    {
+      "type": "redis",
+      "kind": "resource",
+      "className": "AspireForm.Plugin.Redis.RedisResourceProvider"
+    }
+  ]
+}
