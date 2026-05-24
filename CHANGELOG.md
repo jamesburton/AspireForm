@@ -4,6 +4,37 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-05-24
+
+Plugin loader — AspireForm now supports external Resource and Module providers shipped as
+separate NuGet packages.
+
+### Added
+
+- **External plugin loader.** Plugins are NuGet packages with `<PackageType>AspireFormPlugin</PackageType>`
+  containing an `aspireform-plugin.json` manifest. AspireForm shells out to `dotnet restore` to fetch
+  plugin packages into the global NuGet cache, then loads their assemblies into an isolated
+  `AssemblyLoadContext`. No `NuGet.Protocol` is embedded into AspireForm itself — the SDK handles
+  dependency resolution.
+- **Auto-restore on first use.** Declaring a block `type` not provided by a built-in provider
+  triggers an automatic restore of `AspireForm.Plugin.<Name>` on the next `plan`/`apply`. Pinned
+  versions are recorded in `.aspireform/plugins.lock.yaml` (committed to git).
+- **`aspireform plugin list / install / update / remove`** commands for explicit lifecycle
+  management (pinning, offline use, CI cache warmup).
+- **First dogfooded plugin: AspireForm.Plugin.Redis 0.1.0** — Redis Resource provider with optional
+  `withDataVolume` input.
+- **Cross-plugin CI workflow** (`.github/workflows/ci.yml`) builds the entire solution and runs every
+  test project on every push and PR to main; the release workflow now handles
+  `plugin/<Name>/v<version>` tags for per-plugin publishing.
+
+### Notes
+
+- Plugins declare `minAspireFormVersion` in their manifest; the loader refuses incompatible plugins
+  with a clear error.
+- Plugin assemblies remain loaded for the AspireForm-invocation lifetime — `plugin remove` clears the
+  lockfile entry but does not unload an already-loaded plugin until next run.
+- `.cs`-script plugin support is a follow-up plan (Plan 2.0.5).
+
 ## [0.2.0] - 2026-05-24
 
 Plan 3 of 3 — Core Engine complete. The full plan/apply reconciliation loop now ships.

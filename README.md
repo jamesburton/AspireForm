@@ -9,9 +9,9 @@ reconciles that against what is on disk and applies the difference.
 
 ## Status
 
-v0.2.0 — Core Engine complete. Reconciles a declarative `aspireform.yaml` against on-disk state
-for the built-in `sqlserver` and `ef-data` blocks. External plugins, full Module wiring, and
-additional verticals arrive in the verticals-catalog sub-project.
+v0.3.0 — Plugin loader. AspireForm now supports external NuGet plugins; the first one
+(`AspireForm.Plugin.Redis`) is available. More verticals (Mailpit, Hangfire, DAB, auth × 3,
+reporting, ETL) arrive in Plans 2.1–2.9.
 
 ## Install / run
 
@@ -36,6 +36,10 @@ AspireForm is a zero-install .NET tool. With the .NET 10 SDK present:
 | `aspireform state list` | List every tracked block. |
 | `aspireform state show <block>` | Dump one block's state as JSON. |
 | `aspireform doctor` | Check prerequisites (.NET 10 SDK + `aspire` CLI). |
+| `aspireform plugin list` | List installed plugins. |
+| `aspireform plugin install <name>[@version]` | Install a plugin (auto-restore handles unknown types on next plan/apply). |
+| `aspireform plugin update <name>` | Update a plugin to the latest version. |
+| `aspireform plugin remove <name>` | Remove a plugin from the lockfile. |
 
 ## Configuration
 
@@ -52,6 +56,19 @@ A minimal `aspireform.yaml`:
         databases: [appdb]
 
 Per-environment overrides go in `aspireform.<env>.yaml` and are layered with `--env <name>`.
+
+## Plugins
+
+AspireForm supports external plugins that contribute new block types (Resources or Modules)
+via NuGet packages. The first available plugin is **Redis**:
+
+| Plugin | Block type | NuGet |
+|---|---|---|
+| [AspireForm.Plugin.Redis](https://www.nuget.org/packages/AspireForm.Plugin.Redis) | `redis` | 0.1.0 |
+
+When you reference an unknown block `type` in `aspireform.yaml` (e.g. `type: redis`), AspireForm
+auto-restores the matching plugin from NuGet on the next `plan` or `apply`. The resolved
+(name, version) pair is recorded in `.aspireform/plugins.lock.yaml` (committed to git).
 
 ## Documentation
 

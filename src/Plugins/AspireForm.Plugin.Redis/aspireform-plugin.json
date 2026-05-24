@@ -1,7 +1,7 @@
 {
   "name": "Redis",
   "version": "0.1.0",
-  "minAspireFormVersion": "0.2.0",
+  "minAspireFormVersion": "0.3.0",
   "assemblyName": "AspireForm.Plugin.Redis",
   "providers": [
     {
