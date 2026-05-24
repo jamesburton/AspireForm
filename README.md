@@ -70,6 +70,28 @@ When you reference an unknown block `type` in `aspireform.yaml` (e.g. `type: red
 auto-restores the matching plugin from NuGet on the next `plan` or `apply`. The resolved
 (name, version) pair is recorded in `.aspireform/plugins.lock.yaml` (committed to git).
 
+### Script plugins (`.cs` files)
+
+For quick local extension without packaging, drop a `.cs` file into `.aspireform/scripts/`.
+AspireForm compiles it via Roslyn into the same plugin context as NuGet plugins. Use
+`#:package <id>@<version>` directives at the top of the file to declare NuGet dependencies.
+
+```csharp
+#:package Some.Helper.Lib@1.2.3
+
+using AspireForm.Providers;
+
+public sealed class MyVerticalProvider : IProvider
+{
+    public string Type => "my-vertical";
+    public BlockKind Kind => BlockKind.Module;
+    public ProviderPlan Plan(PlanContext context) => new() { /* ... */ };
+}
+```
+
+The compiler caches by source-hash at `.aspireform/scripts/.cache/<sha256>/` — unchanged scripts
+skip recompile.
+
 ## Documentation
 
 - Design spec: `docs/superpowers/specs/`

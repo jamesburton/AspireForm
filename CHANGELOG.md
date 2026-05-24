@@ -4,6 +4,20 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-05-24
+
+Plugin shape #2: `.cs`-script plugins.
+
+### Added
+
+- Drop a `.cs` file into `.aspireform/scripts/` and AspireForm compiles + loads it via Roslyn
+  into the same `AspireFormPlugins` context as NuGet plugins. No package authoring needed.
+- `#:package <id>[@<version>]` directives at the top of a script declare NuGet dependencies;
+  AspireForm restores them via the same `PluginRestorer` path used for NuGet plugins.
+- Source-hash compile cache at `.aspireform/scripts/.cache/<sha256>/` — unchanged scripts skip
+  recompile across runs.
+- Script-provided block types take priority over NuGet auto-restore for the same `type`.
+
 ## [0.3.1] - 2026-05-24
 
 Plugin loader follow-ups from the 0.3.0 review.
