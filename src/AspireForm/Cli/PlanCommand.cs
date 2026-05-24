@@ -8,7 +8,7 @@ using Spectre.Console.Cli;
 namespace AspireForm.Cli;
 
 /// <summary>The <c>plan</c> command: shows the reconciliation diff. Pure; no side effects.</summary>
-public sealed class PlanCommand : Command<PlanCommand.Settings>
+public sealed class PlanCommand : AsyncCommand<PlanCommand.Settings>
 {
     /// <summary>Options for the <c>plan</c> command.</summary>
     public sealed class Settings : CommandSettings
@@ -25,14 +25,15 @@ public sealed class PlanCommand : Command<PlanCommand.Settings>
     }
 
     /// <inheritdoc />
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
             var projectDir = Path.GetFullPath(settings.ProjectDir);
             var loaded = new ConfigLoader().Load(projectDir, settings.Env);
             var state = new StateStore().Load(projectDir);
-            var plan = new Planner(ProviderRegistry.Default()).Plan(loaded.Model, state, projectDir);
+            var registry = await new AspireForm.Plugins.PluginManager().DiscoverAndLoadAsync(loaded.Model, projectDir, cancellationToken);
+            var plan = new Planner(registry).Plan(loaded.Model, state, projectDir);
 
             Console.Out.Write(PlanRenderer.Render(plan));
             return 0;
@@ -50,6 +51,11 @@ public sealed class PlanCommand : Command<PlanCommand.Settings>
         catch (ProviderNotFoundException ex)
         {
             Console.Error.WriteLine($"Plan error: {ex.Message}");
+            return 1;
+        }
+        catch (AspireForm.Plugins.PluginContractException ex)
+        {
+            Console.Error.WriteLine($"Plugin error: {ex.Message}");
             return 1;
         }
         catch (AspireForm.State.StateException ex)

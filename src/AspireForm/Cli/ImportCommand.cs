@@ -26,10 +26,7 @@ public sealed class ImportCommand : AsyncCommand<ImportCommand.Settings>
     }
 
     /// <inheritdoc />
-    protected override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken) =>
-        Task.FromResult(ExecuteCore(settings));
-
-    private static int ExecuteCore(Settings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
@@ -58,7 +55,8 @@ public sealed class ImportCommand : AsyncCommand<ImportCommand.Settings>
                 return 1;
             }
 
-            var provider = ProviderRegistry.Default().Get(blockType);
+            var registry = await new AspireForm.Plugins.PluginManager().DiscoverAndLoadAsync(loaded.Model, projectDir, cancellationToken);
+            var provider = registry.Get(blockType);
             var ctx = new PlanContext(
                 BlockName: settings.BlockName,
                 Inputs: inputs,
@@ -98,6 +96,7 @@ public sealed class ImportCommand : AsyncCommand<ImportCommand.Settings>
         catch (ConfigValidationException ex) { return Fail("Configuration error", ex); }
         catch (StateException ex)             { return Fail("State error", ex); }
         catch (ProviderNotFoundException ex)  { return Fail("Import error", ex); }
+        catch (AspireForm.Plugins.PluginContractException ex) { return Fail("Plugin error", ex); }
     }
 
     private static int Fail(string prefix, Exception ex)

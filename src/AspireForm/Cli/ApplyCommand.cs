@@ -45,7 +45,8 @@ public sealed class ApplyCommand : AsyncCommand<ApplyCommand.Settings>
             var loaded = new ConfigLoader().Load(projectDir, settings.Env);
             var stateStore = new StateStore();
             var prevState = stateStore.Load(projectDir);
-            var plan = new Planner(ProviderRegistry.Default()).Plan(loaded.Model, prevState, projectDir);
+            var registry = await new AspireForm.Plugins.PluginManager().DiscoverAndLoadAsync(loaded.Model, projectDir, cancellationToken);
+            var plan = new Planner(registry).Plan(loaded.Model, prevState, projectDir);
 
             Console.Out.Write(PlanRenderer.Render(plan));
 
@@ -77,6 +78,7 @@ public sealed class ApplyCommand : AsyncCommand<ApplyCommand.Settings>
         catch (StateException ex)             { return Fail("State error", ex); }
         catch (DependencyCycleException ex)   { return Fail("Plan error", ex); }
         catch (ProviderNotFoundException ex)  { return Fail("Plan error", ex); }
+        catch (AspireForm.Plugins.PluginContractException ex) { return Fail("Plugin error", ex); }
     }
 
     private static int Fail(string prefix, Exception ex)

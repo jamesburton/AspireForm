@@ -70,7 +70,8 @@ public sealed class DestroyCommand : AsyncCommand<DestroyCommand.Settings>
 
             // Build an "empty desired state" with the targets removed but other blocks preserved.
             var pseudoModel = BuildPseudoModelExcluding(loaded.Model, targets);
-            var plan = new Planner(ProviderRegistry.Default()).Plan(pseudoModel, prevState, projectDir);
+            var registry = await new AspireForm.Plugins.PluginManager().DiscoverAndLoadAsync(loaded.Model, projectDir, cancellationToken);
+            var plan = new Planner(registry).Plan(pseudoModel, prevState, projectDir);
 
             Console.Out.Write(PlanRenderer.Render(plan));
 
@@ -103,6 +104,7 @@ public sealed class DestroyCommand : AsyncCommand<DestroyCommand.Settings>
         catch (StateException ex)               { return Fail("State error", ex); }
         catch (DependencyCycleException ex)     { return Fail("Plan error", ex); }
         catch (ProviderNotFoundException ex)    { return Fail("Plan error", ex); }
+        catch (AspireForm.Plugins.PluginContractException ex) { return Fail("Plugin error", ex); }
     }
 
     private static ProjectModel BuildPseudoModelExcluding(ProjectModel original, IReadOnlyList<string> exclude)
