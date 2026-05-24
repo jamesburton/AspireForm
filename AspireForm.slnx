@@ -3,12 +3,14 @@
     <Project Path="src/AspireForm/AspireForm.csproj" />
   </Folder>
   <Folder Name="/src/Plugins/">
+    <Project Path="src/Plugins/AspireForm.Plugin.Mailpit/AspireForm.Plugin.Mailpit.csproj" />
     <Project Path="src/Plugins/AspireForm.Plugin.Redis/AspireForm.Plugin.Redis.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AspireForm.Tests/AspireForm.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Plugins/">
+    <Project Path="tests/Plugins/AspireForm.Plugin.Mailpit.Tests/AspireForm.Plugin.Mailpit.Tests.csproj" />
     <Project Path="tests/Plugins/AspireForm.Plugin.Redis.Tests/AspireForm.Plugin.Redis.Tests.csproj" />
   </Folder>
 </Solution>

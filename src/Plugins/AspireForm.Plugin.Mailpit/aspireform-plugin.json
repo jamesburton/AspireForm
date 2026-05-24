@@ -1,0 +1,9 @@
+{
+  "name": "Mailpit",
+  "version": "0.1.0",
+  "minAspireFormVersion": "0.3.0",
+  "assemblyName": "AspireForm.Plugin.Mailpit",
+  "providers": [
+    { "type": "mailpit", "kind": "resource", "className": "AspireForm.Plugin.Mailpit.MailpitResourceProvider" }
+  ]
+}
