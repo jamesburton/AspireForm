@@ -37,4 +37,11 @@ public sealed class ProviderRegistry
         _byType.TryGetValue(type, out var provider)
             ? provider
             : throw new ProviderNotFoundException(type);
+
+    /// <summary>Returns every provider registered with this registry.</summary>
+    public IEnumerable<IProvider> AllProviders() => _byType.Values;
+
+    /// <summary>Builds a new registry that contains every provider from each source. Throws on duplicate types.</summary>
+    public static ProviderRegistry Combine(params IEnumerable<IProvider>[] sources) =>
+        new(sources.SelectMany(s => s));
 }

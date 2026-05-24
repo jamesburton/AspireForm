@@ -44,4 +44,23 @@ public sealed class ProviderRegistryTests
         registry.Get("sqlserver").Should().NotBeNull();
         registry.Get("ef-data").Should().NotBeNull();
     }
+
+    [Fact]
+    public void AllProviders_returns_every_registered_provider()
+    {
+        var registry = new ProviderRegistry([new FakeProvider("a"), new FakeProvider("b")]);
+        registry.AllProviders().Select(p => p.Type).Should().BeEquivalentTo(["a", "b"]);
+    }
+
+    [Fact]
+    public void Combine_builds_a_new_registry_from_two_provider_lists()
+    {
+        var defaults = ProviderRegistry.Default();
+        var plugins = new IProvider[] { new FakeProvider("custom") };
+
+        var combined = ProviderRegistry.Combine(defaults.AllProviders(), plugins);
+
+        combined.Get("sqlserver").Should().NotBeNull();
+        combined.Get("custom").Type.Should().Be("custom");
+    }
 }
