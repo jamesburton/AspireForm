@@ -1,3 +1,4 @@
+using AspireForm.Execution;
 using AspireForm.Providers;
 using AspireForm.State;
 
@@ -80,9 +81,12 @@ public sealed class Reconciler
         var exists = File.Exists(path);
         var beforeContent = exists ? File.ReadAllText(path) : null;
 
-        // State may have been written with either the resolved or relative key; try both.
+        // State may have been written with an absolute path, a relative path, or a repo-relative
+        // forward-slash key (as the Executor writes). Try all three.
+        var repoRelativeKey = PathUtilities.ToRepoRelative(path, projectDir);
         var previousFile = previousState?.Files.GetValueOrDefault(path)
-            ?? previousState?.Files.GetValueOrDefault(planned.Path);
+            ?? previousState?.Files.GetValueOrDefault(planned.Path)
+            ?? previousState?.Files.GetValueOrDefault(repoRelativeKey);
 
         /* Drift is only meaningful when a prior state record exists for this file. */
         var driftDetected = previousFile is not null && exists
