@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Loader;
 using AspireForm.Plugins;
 using AspireForm.Providers;
 using AwesomeAssertions;
@@ -12,13 +13,13 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
 {
     private readonly string _dir = Directory.CreateTempSubdirectory("aspireform-plugin-load").FullName;
 
-    /* Newtonsoft.Json 13.0.3 is known to be in the NuGet cache on this machine (net6.0 is the best TFM
-       available since there is no net10.0 build in that package version). The test copies the DLL into
-       the plugin's lib directory and relies on PluginAssemblyLoader's filename-match fallback. */
-    private static readonly string NewtonsoftDllPath =
+    /* Argon 0.33.5 (a JSON library in the NuGet cache, not referenced by this test project) is used to
+       exercise transitive dep resolution. We use net10.0 so there's no TFM mismatch. The DLL is NOT in
+       the test output directory, so the default ALC probe fails and the Resolving handler must supply it. */
+    private static readonly string ArgonDllPath =
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".nuget", "packages", "newtonsoft.json", "13.0.3", "lib", "net6.0", "Newtonsoft.Json.dll");
+            ".nuget", "packages", "argon", "0.33.5", "lib", "net10.0", "Argon.dll");
 
     public void Dispose()
     {
@@ -66,20 +67,21 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
     [Fact]
     public void LoadProviders_resolves_transitive_dependency_via_filename_fallback()
     {
-        if (!File.Exists(NewtonsoftDllPath))
+        if (!File.Exists(ArgonDllPath))
         {
-            // Newtonsoft.Json 13.0.3 is not in the NuGet cache on this machine — skip.
+            // Argon 0.33.5 is not in the NuGet cache on this machine — skip.
             return;
         }
 
-        /* Synthesise a plugin whose provider calls JsonConvert.SerializeObject at runtime, which forces
-           the CLR to load Newtonsoft.Json when the method is JIT-compiled. The DLL is NOT on the default
-           ALC probe path, so the Resolving handler in PluginAssemblyLoader must supply it. */
+        /* Synthesise a plugin whose provider uses Argon (a JSON library that is NOT referenced by this
+           test project and therefore NOT in the test bin directory). Because Argon is absent from the
+           default ALC's probe path, the runtime fires the Resolving event on the AspireFormPlugins ALC
+           when it JIT-compiles the plugin method. PluginAssemblyLoader's handler must supply it. */
         var assemblyPath = SynthesizeTestPluginAssembly(_dir, "TransitivePlugin",
             providerClassName: "TransitivePlugin.TransitiveProvider",
             providerType: "transitive-test",
             kind: "resource",
-            extraDepPath: NewtonsoftDllPath);
+            extraDepPath: ArgonDllPath);
 
         var packageDir = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(assemblyPath)!)!)!;
         WriteManifest(packageDir, "Transitive", providerType: "transitive-test",
@@ -92,12 +94,22 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
 
         providers.Should().ContainSingle();
 
-        // Invoke the method that calls JsonConvert.SerializeObject via reflection.
-        // If the Resolving handler does not fire, this throws FileNotFoundException for Newtonsoft.Json.
+        // Invoke the method that uses Argon via reflection — this forces JIT to resolve Argon.dll.
+        // If the Resolving handler does not fire, this throws FileNotFoundException for Argon.
         var providerType = providers[0].GetType();
         var method = providerType.GetMethod("SerializeTest", BindingFlags.Public | BindingFlags.Instance)!;
         var result = (string)method.Invoke(providers[0], null)!;
         result.Should().NotBeNullOrEmpty();
+
+        // Argon.dll must be loaded into the AspireFormPlugins ALC (not just the default ALC). This
+        // confirms the Resolving handler placed it there rather than the default ALC's probe path.
+        var pluginAlc = AssemblyLoadContext.All
+            .FirstOrDefault(a => a.Name == "AspireFormPlugins");
+        pluginAlc.Should().NotBeNull("the AspireFormPlugins ALC must exist after LoadProviders is called");
+        var argonInPluginAlc = pluginAlc!.Assemblies
+            .Any(a => a.GetName().Name == "Argon");
+        argonInPluginAlc.Should().BeTrue(
+            "Argon must be loaded into the AspireFormPlugins ALC so plugin types share its identity");
     }
 
     private static string SynthesizeTestPluginAssembly(
@@ -114,7 +126,8 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
 
         // When a dep DLL is provided, copy it alongside the plugin DLL and include a method that
         // uses it — this forces the CLR to actually load the transitive assembly at JIT time.
-        var usingClause = extraDepPath is not null ? "using Newtonsoft.Json;" : "";
+        // Argon.JsonConvert.SerializeObject is the API used here (mirrors Newtonsoft.Json's surface).
+        var usingClause = extraDepPath is not null ? "using Argon;" : "";
         var extraMethod = extraDepPath is not null
             ? """
                   public string SerializeTest() => JsonConvert.SerializeObject(new { ok = true });
