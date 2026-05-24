@@ -1,0 +1,9 @@
+{
+  "name": "DAB",
+  "version": "0.1.0",
+  "minAspireFormVersion": "0.3.0",
+  "assemblyName": "AspireForm.Plugin.DAB",
+  "providers": [
+    { "type": "dab", "kind": "resource", "className": "AspireForm.Plugin.DAB.DabResourceProvider" }
+  ]
+}
