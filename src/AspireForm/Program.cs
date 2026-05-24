@@ -21,6 +21,14 @@ app.Configure(config =>
 
     config.AddCommand<DestroyCommand>("destroy")
         .WithDescription("Destroy one block (or all blocks when no argument is supplied).");
+
+    config.AddBranch("state", state =>
+    {
+        state.SetDescription("Inspect AspireForm's tracked state.");
+        state.AddCommand<StateListCommand>("list")
+            .WithDescription("List all tracked blocks.");
+        // 'show' subcommand added in Task 8.
+    });
 });
 
 return await app.RunAsync(args);
