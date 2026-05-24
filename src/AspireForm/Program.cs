@@ -28,6 +28,9 @@ app.Configure(config =>
     config.AddCommand<DestroyCommand>("destroy")
         .WithDescription("Destroy one block (or all blocks when no argument is supplied).");
 
+    config.AddCommand<ImportCommand>("import")
+        .WithDescription("Adopt an existing block into AspireForm state (records the block without executing).");
+
     config.AddBranch("state", state =>
     {
         state.SetDescription("Inspect AspireForm's tracked state.");
