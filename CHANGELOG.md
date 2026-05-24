@@ -34,6 +34,11 @@ separate NuGet packages.
 - Plugin assemblies remain loaded for the AspireForm-invocation lifetime — `plugin remove` clears the
   lockfile entry but does not unload an already-loaded plugin until next run.
 - `.cs`-script plugin support is a follow-up plan (Plan 2.0.5).
+- **Plugin transitive dependency limitation:** plugins in 0.3.0 must depend only on AspireForm
+  and the BCL. Transitive NuGet dependencies are not yet resolved by the loader — a plugin
+  declaring `<PackageReference Include="ThirdParty" />` will fail at runtime when its assembly
+  tries to use ThirdParty types. AssemblyDependencyResolver wiring arrives in 0.3.1; the first
+  vertical needing it (likely Mailpit or Hangfire) will drive that work.
 
 ## [0.2.0] - 2026-05-24
 

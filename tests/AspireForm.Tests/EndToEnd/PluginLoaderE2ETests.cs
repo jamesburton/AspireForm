@@ -91,7 +91,9 @@ public sealed class PluginLoaderE2ETests : IDisposable
         // 5. Verify the lockfile was written with the resolved Redis plugin entry.
         var lockPath = Path.Combine(_projectDir, ".aspireform", "plugins.lock.yaml");
         File.Exists(lockPath).Should().BeTrue();
-        File.ReadAllText(lockPath).Should().Contain("AspireForm.Plugin.Redis");
+        var lockContent = File.ReadAllText(lockPath);
+        lockContent.Should().Contain("AspireForm.Plugin.Redis");
+        lockContent.Should().MatchRegex(@"version:\s*0\.\d+\.\d+");
     }
 
     private static (int ExitCode, string Output) Run(string fileName, string workingDirectory, params string[] args)

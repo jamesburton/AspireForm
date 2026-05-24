@@ -48,12 +48,24 @@ public sealed class PluginManager
 
         var lockfile = PluginLockfile.Load(projectDir);
         var pluginProviders = new List<IProvider>();
+        var lockfileDirty = false;
 
         foreach (var type in unknownTypes)
         {
-            var entry = lockfile.Plugins.FirstOrDefault(p =>
-                ResolvePackageId(p.Name).Equals(ResolvePackageIdFromType(type), StringComparison.OrdinalIgnoreCase))
-                ?? await ResolveAndLockAsync(type, lockfile, projectDir, cancellationToken);
+            var packageId = ResolvePackageIdFromType(type);
+            var existing = lockfile.Plugins.FirstOrDefault(p =>
+                p.Package.Equals(packageId, StringComparison.OrdinalIgnoreCase));
+
+            PluginLockEntry entry;
+            if (existing is not null)
+            {
+                entry = existing;
+            }
+            else
+            {
+                entry = await ResolveAndLockAsync(type, lockfile, projectDir, cancellationToken);
+                lockfileDirty = true;
+            }
 
             var packageDir = Path.Combine(PluginRestorer.GetGlobalPackagesPath(),
                 entry.Package.ToLowerInvariant(), entry.Version);
@@ -83,7 +95,11 @@ public sealed class PluginManager
             pluginProviders.AddRange(_loader.LoadProviders(packageDir, manifest));
         }
 
-        PluginLockfile.Save(projectDir, lockfile);
+        if (lockfileDirty)
+        {
+            PluginLockfile.Save(projectDir, lockfile);
+        }
+
         return ProviderRegistry.Combine(builtIn.AllProviders(), pluginProviders);
     }
 
@@ -127,12 +143,17 @@ public sealed class PluginManager
         return $"AspireForm.Plugin.{pascal}";
     }
 
-    private static string ResolvePackageId(string name) =>
-        name.StartsWith("AspireForm.Plugin.", StringComparison.OrdinalIgnoreCase)
-            ? name
-            : $"AspireForm.Plugin.{name}";
-
-    private static void CheckContractCompatibility(PluginManifest manifest)
+    /// <summary>
+    /// Checks that the running AspireForm version satisfies the plugin's <c>minAspireFormVersion</c>
+    /// constraint. Throws <see cref="PluginContractException"/> when the version is too old or
+    /// when the constraint cannot be parsed.
+    /// </summary>
+    /// <param name="manifest">The plugin manifest to validate.</param>
+    /// <exception cref="PluginContractException">
+    /// Thrown when <see cref="PluginManifest.MinAspireFormVersion"/> is not a valid version string,
+    /// or when the running AspireForm version is older than the minimum required.
+    /// </exception>
+    public static void CheckContractCompatibility(PluginManifest manifest)
     {
         var running = typeof(PluginManager).Assembly.GetName().Version
             ?? throw new InvalidOperationException("Cannot determine running AspireForm version.");
