@@ -4,6 +4,30 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-05-24
+
+Plugin loader follow-ups from the 0.3.0 review.
+
+### Added
+
+- **`AssemblyDependencyResolver`** wired into `PluginAssemblyLoader`. Plugins may now depend on
+  transitive NuGet packages — the loader resolves them via the plugin's `.deps.json` plus a
+  filename-match fallback across all loaded plugin directories. The 0.3.0 limitation noted in
+  the changelog is lifted.
+
+### Changed
+
+- `PluginListCommand` column widths now auto-size from the data — long plugin names no longer
+  misalign the table.
+- `PluginManager` manifest read is now properly async.
+- `PluginInstallCommand` treats an empty version after `@` (e.g. `Redis@`) as floating, same
+  as omitting `@` entirely.
+
+### Removed
+
+- `PluginLockEntry.Source` field — was hard-coded to nuget.org regardless of the actual feed
+  used. Real feed-tracking can return when there's a clear use case.
+
 ## [0.3.0] - 2026-05-24
 
 Plugin loader — AspireForm now supports external Resource and Module providers shipped as

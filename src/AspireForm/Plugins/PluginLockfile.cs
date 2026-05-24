@@ -15,8 +15,6 @@ public sealed class PluginLockEntry
     /// <summary>The pinned package version.</summary>
     public string Version { get; set; } = string.Empty;
 
-    /// <summary>The NuGet feed source the plugin was restored from.</summary>
-    public string Source { get; set; } = string.Empty;
 }
 
 /// <summary>The persisted set of plugins this project has resolved. Committed to git.</summary>

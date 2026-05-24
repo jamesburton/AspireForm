@@ -58,7 +58,6 @@ public sealed class PluginInstallCommand : AsyncCommand<PluginInstallCommand.Set
             Name = displayName,
             Package = packageId,
             Version = resolvedVersion,
-            Source = "https://api.nuget.org/v3/index.json",
         });
         lockfile.Plugins.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
         PluginLockfile.Save(projectDir, lockfile);
@@ -67,11 +66,17 @@ public sealed class PluginInstallCommand : AsyncCommand<PluginInstallCommand.Set
         return 0;
     }
 
-    private static (string PackageId, string Version) ParseNameAndVersion(string input)
+    internal static (string PackageId, string Version) ParseNameAndVersion(string input)
     {
         var at = input.IndexOf('@');
         var packageId = at < 0 ? input : input[..at];
         var version = at < 0 ? "*" : input[(at + 1)..];
+
+        // Treat empty version (e.g. "Redis@") the same as no version — float to latest.
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            version = "*";
+        }
 
         if (!packageId.Contains('.'))
         {

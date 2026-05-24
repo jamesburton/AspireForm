@@ -90,7 +90,7 @@ public sealed class PluginManager
                     $"Plugin '{entry.Name}' is missing 'aspireform-plugin.json' at the package root.");
             }
 
-            var manifest = PluginManifest.Parse(File.ReadAllText(manifestPath));
+            var manifest = PluginManifest.Parse(await File.ReadAllTextAsync(manifestPath, cancellationToken));
             CheckContractCompatibility(manifest);
             pluginProviders.AddRange(_loader.LoadProviders(packageDir, manifest));
         }
@@ -127,7 +127,6 @@ public sealed class PluginManager
             Name = displayName,
             Package = packageId,
             Version = resolvedVersion,
-            Source = "https://api.nuget.org/v3/index.json",
         };
 
         lockfile.Plugins.Add(entry);

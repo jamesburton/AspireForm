@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.Loader;
 using AspireForm.Providers;
@@ -8,6 +9,15 @@ namespace AspireForm.Plugins;
 public sealed class PluginAssemblyLoader
 {
     private static readonly AssemblyLoadContext Context = new("AspireFormPlugins", isCollectible: false);
+
+    /* Keyed on the plugin's assembly path; used by the Resolving handler for .deps.json-aware resolution. */
+    private static readonly ConcurrentDictionary<string, AssemblyDependencyResolver> _resolvers = new();
+
+    /* Directories of every plugin assembly that has been loaded; used as filename-match fallback. */
+    private static readonly ConcurrentBag<string> _pluginDirectories = [];
+
+    /* Guards one-time attachment of the Resolving handler to Context. 0 = not attached, 1 = attached. */
+    private static int _handlerAttached;
 
     /// <summary>
     /// Loads the plugin assembly from <paramref name="packageDirectory"/> (a NuGet cache directory containing
@@ -27,6 +37,12 @@ public sealed class PluginAssemblyLoader
         var assemblyPath = LocateAssembly(packageDirectory, assemblyName)
             ?? throw new PluginContractException(
                 $"Plugin '{manifest.Name}': could not locate '{assemblyName}.dll' under '{packageDirectory}/lib/'.");
+
+        EnsureResolvingHandlerAttached();
+
+        // Register an AssemblyDependencyResolver for this plugin (uses <assembly>.deps.json when present).
+        _resolvers.TryAdd(assemblyPath, new AssemblyDependencyResolver(assemblyPath));
+        _pluginDirectories.Add(Path.GetDirectoryName(assemblyPath)!);
 
         Assembly assembly;
         try
@@ -62,6 +78,49 @@ public sealed class PluginAssemblyLoader
         }
 
         return providers;
+    }
+
+    /* Attaches the Resolving handler to Context exactly once per process. */
+    private static void EnsureResolvingHandlerAttached()
+    {
+        if (Interlocked.CompareExchange(ref _handlerAttached, 1, 0) == 0)
+        {
+            Context.Resolving += ResolveFromAnyPlugin;
+        }
+    }
+
+    /* Resolving handler: tries each plugin's AssemblyDependencyResolver first (honours .deps.json),
+       then falls back to a filename-match across all registered plugin directories. */
+    private static Assembly? ResolveFromAnyPlugin(AssemblyLoadContext ctx, AssemblyName name)
+    {
+        // 1. .deps.json-aware resolution via registered resolvers.
+        foreach (var (_, resolver) in _resolvers)
+        {
+            var path = resolver.ResolveAssemblyToPath(name);
+            if (path is not null && File.Exists(path))
+            {
+                return ctx.LoadFromAssemblyPath(path);
+            }
+        }
+
+        // 2. Filename-match fallback: look for <assemblyName>.dll in any plugin directory.
+        //    Covers synthesised test plugins (no .deps.json) and edge-case package layouts.
+        if (name.Name is null)
+        {
+            return null;
+        }
+
+        var fileName = $"{name.Name}.dll";
+        foreach (var dir in _pluginDirectories)
+        {
+            var candidate = Path.Combine(dir, fileName);
+            if (File.Exists(candidate))
+            {
+                return ctx.LoadFromAssemblyPath(candidate);
+            }
+        }
+
+        return null;
     }
 
     /* Walks lib/<tfm>/<assembly>.dll, preferring net10.0 but falling back to any TFM found. */

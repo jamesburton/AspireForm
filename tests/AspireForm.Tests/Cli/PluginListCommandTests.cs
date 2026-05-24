@@ -51,7 +51,6 @@ public sealed class PluginListCommandTests : IDisposable
             Name = "Redis",
             Package = "AspireForm.Plugin.Redis",
             Version = "0.1.0",
-            Source = "https://api.nuget.org/v3/index.json",
         });
         PluginLockfile.Save(_dir, lockfile);
 

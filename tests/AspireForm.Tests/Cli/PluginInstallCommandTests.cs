@@ -41,4 +41,16 @@ public sealed class PluginInstallCommandTests : IDisposable
         exitCode.Should().Be(1);
         stderr.Should().NotBeNullOrEmpty();
     }
+
+    [Theory]
+    [InlineData("Redis@", "AspireForm.Plugin.Redis", "*")]
+    [InlineData("Redis", "AspireForm.Plugin.Redis", "*")]
+    [InlineData("Redis@0.1.0", "AspireForm.Plugin.Redis", "0.1.0")]
+    [InlineData("AspireForm.Plugin.Redis@1.2.3", "AspireForm.Plugin.Redis", "1.2.3")]
+    public void ParseNameAndVersion_handles_all_input_forms(string input, string expectedId, string expectedVersion)
+    {
+        var (packageId, version) = PluginInstallCommand.ParseNameAndVersion(input);
+        packageId.Should().Be(expectedId);
+        version.Should().Be(expectedVersion);
+    }
 }

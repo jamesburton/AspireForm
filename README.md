@@ -70,12 +70,6 @@ When you reference an unknown block `type` in `aspireform.yaml` (e.g. `type: red
 auto-restores the matching plugin from NuGet on the next `plan` or `apply`. The resolved
 (name, version) pair is recorded in `.aspireform/plugins.lock.yaml` (committed to git).
 
-### Authoring a plugin (0.3.0 limitation)
-
-In 0.3.0, plugins must depend only on `AspireForm` and the BCL. Transitive NuGet dependencies
-are not yet loaded by the plugin loader — they will fail at runtime. AssemblyDependencyResolver
-wiring is planned for 0.3.1.
-
 ## Documentation
 
 - Design spec: `docs/superpowers/specs/`

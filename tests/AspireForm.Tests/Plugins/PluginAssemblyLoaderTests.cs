@@ -1,3 +1,4 @@
+using System.Reflection;
 using AspireForm.Plugins;
 using AspireForm.Providers;
 using AwesomeAssertions;
@@ -10,6 +11,14 @@ namespace AspireForm.Tests.Plugins;
 public sealed class PluginAssemblyLoaderTests : IDisposable
 {
     private readonly string _dir = Directory.CreateTempSubdirectory("aspireform-plugin-load").FullName;
+
+    /* Newtonsoft.Json 13.0.3 is known to be in the NuGet cache on this machine (net6.0 is the best TFM
+       available since there is no net10.0 build in that package version). The test copies the DLL into
+       the plugin's lib directory and relies on PluginAssemblyLoader's filename-match fallback. */
+    private static readonly string NewtonsoftDllPath =
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".nuget", "packages", "newtonsoft.json", "13.0.3", "lib", "net6.0", "Newtonsoft.Json.dll");
 
     public void Dispose()
     {
@@ -54,8 +63,46 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
         act.Should().Throw<PluginContractException>().WithMessage("*NoSuchClass*");
     }
 
+    [Fact]
+    public void LoadProviders_resolves_transitive_dependency_via_filename_fallback()
+    {
+        if (!File.Exists(NewtonsoftDllPath))
+        {
+            // Newtonsoft.Json 13.0.3 is not in the NuGet cache on this machine — skip.
+            return;
+        }
+
+        /* Synthesise a plugin whose provider calls JsonConvert.SerializeObject at runtime, which forces
+           the CLR to load Newtonsoft.Json when the method is JIT-compiled. The DLL is NOT on the default
+           ALC probe path, so the Resolving handler in PluginAssemblyLoader must supply it. */
+        var assemblyPath = SynthesizeTestPluginAssembly(_dir, "TransitivePlugin",
+            providerClassName: "TransitivePlugin.TransitiveProvider",
+            providerType: "transitive-test",
+            kind: "resource",
+            extraDepPath: NewtonsoftDllPath);
+
+        var packageDir = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(assemblyPath)!)!)!;
+        WriteManifest(packageDir, "Transitive", providerType: "transitive-test",
+            className: "TransitivePlugin.TransitiveProvider", assemblyName: "TransitivePlugin");
+
+        var manifest = PluginManifest.Parse(File.ReadAllText(Path.Combine(packageDir, "aspireform-plugin.json")));
+
+        var loader = new PluginAssemblyLoader();
+        var providers = loader.LoadProviders(packageDir, manifest);
+
+        providers.Should().ContainSingle();
+
+        // Invoke the method that calls JsonConvert.SerializeObject via reflection.
+        // If the Resolving handler does not fire, this throws FileNotFoundException for Newtonsoft.Json.
+        var providerType = providers[0].GetType();
+        var method = providerType.GetMethod("SerializeTest", BindingFlags.Public | BindingFlags.Instance)!;
+        var result = (string)method.Invoke(providers[0], null)!;
+        result.Should().NotBeNullOrEmpty();
+    }
+
     private static string SynthesizeTestPluginAssembly(
-        string dir, string assemblyName, string providerClassName, string providerType, string kind)
+        string dir, string assemblyName, string providerClassName, string providerType, string kind,
+        string? extraDepPath = null)
     {
         // Layout: <dir>/<assemblyName>/lib/net10.0/<assemblyName>.dll
         var libDir = Path.Combine(dir, assemblyName, "lib", "net10.0");
@@ -65,9 +112,19 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
             ? (providerClassName[..providerClassName.LastIndexOf('.')], providerClassName[(providerClassName.LastIndexOf('.') + 1)..])
             : ("", providerClassName);
 
+        // When a dep DLL is provided, copy it alongside the plugin DLL and include a method that
+        // uses it — this forces the CLR to actually load the transitive assembly at JIT time.
+        var usingClause = extraDepPath is not null ? "using Newtonsoft.Json;" : "";
+        var extraMethod = extraDepPath is not null
+            ? """
+                  public string SerializeTest() => JsonConvert.SerializeObject(new { ok = true });
+              """
+            : "";
+
         var source = $$"""
             using AspireForm.Providers;
             using System.Text.Json.Nodes;
+            {{usingClause}}
 
             namespace {{ns}};
 
@@ -76,6 +133,7 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
                 public string Type => "{{providerType}}";
                 public BlockKind Kind => BlockKind.{{(kind == "module" ? "Module" : "Resource")}};
                 public ProviderPlan Plan(PlanContext context) => new();
+            {{extraMethod}}
             }
             """;
 
@@ -87,6 +145,16 @@ public sealed class PluginAssemblyLoaderTests : IDisposable
             .Select(a => MetadataReference.CreateFromFile(a.Location))
             .Cast<MetadataReference>()
             .ToList();
+
+        // Add the extra dep as a compile-time reference (Roslyn needs it to resolve Newtonsoft.Json types).
+        if (extraDepPath is not null)
+        {
+            refs.Add(MetadataReference.CreateFromFile(extraDepPath));
+
+            // Copy dep DLL next to the plugin DLL — the Resolving fallback looks for <name>.dll in the
+            // same directory as any registered plugin assembly.
+            File.Copy(extraDepPath, Path.Combine(libDir, Path.GetFileName(extraDepPath)), overwrite: true);
+        }
 
         var syntax = CSharpSyntaxTree.ParseText(source);
         var compilation = CSharpCompilation.Create(

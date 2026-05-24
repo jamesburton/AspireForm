@@ -96,7 +96,6 @@ public sealed class PluginManagerTests : IDisposable
             Name = "Unused",
             Package = "AspireForm.Plugin.Unused",
             Version = "0.0.0",
-            Source = "https://api.nuget.org/v3/index.json",
         });
         PluginLockfile.Save(_dir, lockfile);
 
@@ -125,7 +124,6 @@ public sealed class PluginManagerTests : IDisposable
             Name = "Unused",
             Package = "AspireForm.Plugin.Unused",
             Version = "0.0.0",
-            Source = "https://api.nuget.org/v3/index.json",
         });
         PluginLockfile.Save(_dir, lockfile);
 
