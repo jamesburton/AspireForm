@@ -40,8 +40,10 @@ public sealed class PluginRestorer
         string workingDirectory,
         CancellationToken cancellationToken = default)
     {
+        // Replace characters invalid in directory names (e.g. '*' in floating versions) with '_'.
+        var safeVersion = string.Concat(version.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
         var probeDir = Path.Combine(workingDirectory, ".aspireform", "restore-probes",
-            $"{packageId}-{version}-{Guid.NewGuid():N}");
+            $"{packageId}-{safeVersion}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(probeDir);
 
         var csprojPath = Path.Combine(probeDir, "Probe.csproj");
@@ -93,7 +95,15 @@ public sealed class PluginRestorer
         }
 
         // Locate the package in the global cache: <globalPackages>/<id-lower>/<version>/
-        var packageDir = Path.Combine(GetGlobalPackagesPath(), packageId.ToLowerInvariant(), version);
+        var packageRoot = Path.Combine(GetGlobalPackagesPath(), packageId.ToLowerInvariant());
+        var resolvedVersion = ResolveCacheVersion(packageRoot, version);
+        if (resolvedVersion is null)
+        {
+            return new PluginRestoreResult(false, null,
+                $"Restore reported success but no version directory was found under '{packageRoot}'.");
+        }
+
+        var packageDir = Path.Combine(packageRoot, resolvedVersion);
         if (!Directory.Exists(packageDir))
         {
             return new PluginRestoreResult(false, null,
@@ -101,5 +111,41 @@ public sealed class PluginRestorer
         }
 
         return new PluginRestoreResult(true, packageDir, null);
+    }
+
+    /// <summary>
+    /// Resolves the package version directory name in <paramref name="packageRoot"/>.
+    /// For pinned versions the input is returned as-is. For floating versions (containing <c>*</c>),
+    /// scans the cached directories and picks the highest by semver, falling back to ordinal compare
+    /// for pre-release suffixes.
+    /// </summary>
+    private static string? ResolveCacheVersion(string packageRoot, string requestedVersion)
+    {
+        // Pinned version: use as-is — the directory must already exist.
+        if (!requestedVersion.Contains('*'))
+        {
+            return requestedVersion;
+        }
+
+        if (!Directory.Exists(packageRoot))
+        {
+            return null;
+        }
+
+        // Floating version: pick the highest semver among the cached directories.
+        var candidates = Directory.EnumerateDirectories(packageRoot)
+            .Select(Path.GetFileName)
+            .Where(n => !string.IsNullOrEmpty(n))
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
+        return candidates
+            .OrderByDescending(v => Version.TryParse(v!.Split('-')[0], out var parsed) ? parsed : new Version(0, 0))
+            .ThenByDescending(v => v, StringComparer.OrdinalIgnoreCase)
+            .First();
     }
 }

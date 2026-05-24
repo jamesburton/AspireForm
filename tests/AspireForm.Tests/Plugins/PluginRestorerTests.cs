@@ -36,6 +36,23 @@ public sealed class PluginRestorerTests : IDisposable
     }
 
     [Fact]
+    public async Task RestoreAsync_resolves_floating_version_to_concrete_directory()
+    {
+        // Use a stable package; floating-version restore should locate it in the cache.
+        var result = await _restorer.RestoreAsync(
+            packageId: "Newtonsoft.Json", version: "*", workingDirectory: _dir);
+
+        result.Success.Should().BeTrue(result.ErrorMessage);
+        result.PackageDirectory.Should().NotBeNull();
+        Directory.Exists(result.PackageDirectory).Should().BeTrue();
+
+        // The directory name should be a real version (not literal "*").
+        var versionName = new DirectoryInfo(result.PackageDirectory!).Name;
+        versionName.Should().NotBe("*");
+        versionName.Should().MatchRegex(@"^\d+\.\d+\.\d+");
+    }
+
+    [Fact]
     public void GetGlobalPackagesPath_returns_a_real_directory()
     {
         var path = PluginRestorer.GetGlobalPackagesPath();
