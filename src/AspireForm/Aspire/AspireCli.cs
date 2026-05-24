@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace AspireForm.Aspire;
@@ -17,31 +18,51 @@ public sealed class AspireCli : IAspireCli
     /// <inheritdoc />
     public async Task<string?> GetVersionAsync(CancellationToken cancellationToken = default)
     {
+        var result = await RunAsync(["--version"], workingDirectory: Environment.CurrentDirectory, cancellationToken);
+        return result.ExitCode == 0 ? result.StandardOutput.Trim() : null;
+    }
+
+    /// <inheritdoc />
+    public async Task<CliResult> RunAsync(
+        IReadOnlyList<string> args,
+        string workingDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = _executablePath,
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        foreach (var arg in args)
+        {
+            startInfo.ArgumentList.Add(arg);
+        }
+
         try
         {
-            var startInfo = new ProcessStartInfo(_executablePath, "--version")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-
             using var process = Process.Start(startInfo);
             if (process is null)
             {
-                return null;
+                return new CliResult(ExitCode: -1, StandardOutput: string.Empty, StandardError: "Failed to start process.");
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            // Read both streams in parallel so neither blocks the other.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
 
-            return process.ExitCode == 0 ? output.Trim() : null;
+            return new CliResult(process.ExitCode, stdout, stderr);
         }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or FileNotFoundException)
+        catch (Exception ex) when (ex is Win32Exception or FileNotFoundException)
         {
-            // The executable is not installed or not on PATH.
-            return null;
+            return new CliResult(ExitCode: -1, StandardOutput: string.Empty, StandardError: ex.Message);
         }
     }
 }

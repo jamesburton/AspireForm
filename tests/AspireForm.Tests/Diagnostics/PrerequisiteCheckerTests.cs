@@ -14,6 +14,12 @@ public sealed class PrerequisiteCheckerTests
 
         public Task<string?> GetVersionAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(version);
+
+        public Task<CliResult> RunAsync(
+            IReadOnlyList<string> args,
+            string workingDirectory,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new CliResult(ExitCode: 0, StandardOutput: string.Empty, StandardError: string.Empty));
     }
 
     [Fact]
