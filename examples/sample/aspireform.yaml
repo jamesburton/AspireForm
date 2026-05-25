@@ -1,7 +1,7 @@
 aspireform:
   version: 1
   project: SampleApp
-  apphost: ./SampleApp.AppHost
+  apphost: examples/sample/SampleApp.AppHost
 resources:
   sql:
     type: sqlserver
@@ -11,5 +11,4 @@ modules:
   data:
     type: ef-data
     dependsOn: [sql]
-    database: appdb
-    contextName: AppDbContext
+    projectPath: ../SampleApp.Entities/SampleApp.Entities.csproj

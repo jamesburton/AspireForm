@@ -37,7 +37,20 @@ public sealed class ApplyCommandTests : IDisposable
     public void Apply_with_yes_writes_files_and_persists_state()
     {
         // Use ef-data only: zero CLI actions, no aspire dependency at test time.
-        File.WriteAllText(Path.Combine(_dir, "aspireform.yaml"), """
+        // Create a minimal entity csproj so the ef-data provider can scan it.
+        var entityDir = Directory.CreateDirectory(Path.Combine(_dir, "SampleApp.Entities")).FullName;
+        var entityCsproj = Path.Combine(entityDir, "SampleApp.Entities.csproj");
+        File.WriteAllText(entityCsproj, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(_dir, "aspireform.yaml"), $"""
             aspireform:
               version: 1
               project: SampleApp
@@ -45,15 +58,16 @@ public sealed class ApplyCommandTests : IDisposable
             modules:
               data:
                 type: ef-data
-                database: appdb
-                contextName: AppDbContext
+                projectPath: {entityCsproj.Replace("\\", "/")}
             """);
 
         var (exitCode, stdout, _) = RunApply("--project-dir", _dir, "--yes");
 
         exitCode.Should().Be(0);
         stdout.Should().Contain("Applied");
-        File.Exists(Path.Combine(_dir, "SampleApp.AppHost", "Data", "AppDbContext.cs")).Should().BeTrue();
+
+        // The DbContext is emitted into the entity project directory (not AppHost/Data) in 0.5.0+.
+        File.Exists(Path.Combine(entityDir, "AppDbContext.cs")).Should().BeTrue();
         File.Exists(Path.Combine(_dir, ".aspireform", "state.json")).Should().BeTrue();
     }
 

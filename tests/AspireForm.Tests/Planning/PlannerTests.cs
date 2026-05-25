@@ -46,9 +46,22 @@ public sealed class PlannerTests : IDisposable
     [Fact]
     public void Plan_orders_modules_after_their_resource_dependencies()
     {
+        // Create a minimal entity csproj in the temp dir so the ef-data provider can scan it.
+        var entityDir = Directory.CreateDirectory(Path.Combine(_dir, "MyApp.Entities")).FullName;
+        var entityCsproj = Path.Combine(entityDir, "MyApp.Entities.csproj");
+        File.WriteAllText(entityCsproj, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+              </PropertyGroup>
+            </Project>
+            """);
+
         var model = new ProjectModel
         {
-            AspireForm = new AspireFormHeader { Version = 1, Project = "MyApp", AppHost = "./MyApp.AppHost" },
+            AspireForm = new AspireFormHeader { Version = 1, Project = "MyApp", AppHost = _dir },
             Resources = new Dictionary<string, ResourceBlock>
             {
                 ["sql"] = new() { Name = "sql", Type = "sqlserver", Inputs = new JsonObject() },
@@ -58,7 +71,7 @@ public sealed class PlannerTests : IDisposable
                 ["data"] = new()
                 {
                     Name = "data", Type = "ef-data", DependsOn = ["sql"],
-                    Inputs = new JsonObject { ["database"] = "appdb", ["contextName"] = "AppDbContext" },
+                    Inputs = new JsonObject { ["projectPath"] = entityCsproj },
                 },
             },
         };

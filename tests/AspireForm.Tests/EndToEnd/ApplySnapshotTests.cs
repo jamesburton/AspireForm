@@ -69,7 +69,20 @@ public sealed class ApplySnapshotTests : IDisposable
     public void Apply_against_an_ef_data_only_config_writes_dbcontext_and_state()
     {
         // ef-data only — no CLI actions, so no aspire dependency required at test time.
-        File.WriteAllText(Path.Combine(_dir, "aspireform.yaml"), """
+        // Create a minimal entity csproj so the ef-data provider can scan it.
+        var entityDir = Directory.CreateDirectory(Path.Combine(_dir, "Snapshot.Entities")).FullName;
+        var entityCsproj = Path.Combine(entityDir, "Snapshot.Entities.csproj");
+        File.WriteAllText(entityCsproj, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(_dir, "aspireform.yaml"), $"""
             aspireform:
               version: 1
               project: Snapshot
@@ -77,16 +90,17 @@ public sealed class ApplySnapshotTests : IDisposable
             modules:
               data:
                 type: ef-data
-                database: appdb
-                contextName: AppDbContext
+                projectPath: {entityCsproj.Replace("\\", "/")}
             """);
 
         var (exitCode, output) = RunTool(_dir, "apply", "--project-dir", _dir, "--yes");
 
         exitCode.Should().Be(0, output);
-        File.Exists(Path.Combine(_dir, "Snapshot.AppHost", "Data", "AppDbContext.cs")).Should().BeTrue();
+
+        // The DbContext is emitted into the entity project directory (not AppHost/Data) in 0.5.0+.
+        File.Exists(Path.Combine(entityDir, "AppDbContext.cs")).Should().BeTrue();
         File.Exists(Path.Combine(_dir, ".aspireform", "state.json")).Should().BeTrue();
-        File.ReadAllText(Path.Combine(_dir, "Snapshot.AppHost", "Data", "AppDbContext.cs"))
+        File.ReadAllText(Path.Combine(entityDir, "AppDbContext.cs"))
             .Should().Contain("class AppDbContext : DbContext");
     }
 }

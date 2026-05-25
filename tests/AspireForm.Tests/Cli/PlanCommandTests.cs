@@ -36,7 +36,20 @@ public sealed class PlanCommandTests : IDisposable
     [Fact]
     public void Plan_against_sample_config_renders_create_actions()
     {
-        File.WriteAllText(Path.Combine(_dir, "aspireform.yaml"), """
+        // Create a minimal entity csproj so the ef-data provider can scan it.
+        var entityDir = Directory.CreateDirectory(Path.Combine(_dir, "SampleApp.Entities")).FullName;
+        var entityCsproj = Path.Combine(entityDir, "SampleApp.Entities.csproj");
+        File.WriteAllText(entityCsproj, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(_dir, "aspireform.yaml"), $"""
             aspireform:
               version: 1
               project: SampleApp
@@ -50,8 +63,7 @@ public sealed class PlanCommandTests : IDisposable
               data:
                 type: ef-data
                 dependsOn: [sql]
-                database: appdb
-                contextName: AppDbContext
+                projectPath: {entityCsproj.Replace("\\", "/")}
             """);
 
         var (exitCode, stdout, _) = RunPlan("--project-dir", _dir);
