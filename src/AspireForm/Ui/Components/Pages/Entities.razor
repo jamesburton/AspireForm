@@ -10,7 +10,7 @@
             <input type="text" placeholder="Search entities..." @bind="Filter" @bind:event="oninput" style="width:100%" />
         </div>
         <div class="sidebar-actions">
-            <span class="muted" style="font-size:.8em">@FilteredEntities.Count entities</span>
+            <button @onclick="() => ShowNewEntity = true" style="width:100%">+ New Entity</button>
         </div>
         <div class="sidebar-list">
             @foreach (var e in FilteredEntities.OrderBy(e => e.Name, StringComparer.Ordinal))
@@ -30,42 +30,54 @@
         }
         @if (Selected is null)
         {
-            <div class="detail-body muted">Select an entity from the sidebar to view its details.</div>
+            <div class="detail-body muted">Select an entity from the sidebar.</div>
         }
         else
         {
             <EntityHeader Entity="@Selected" />
             <div class="detail-tabs">
-                <div class="detail-tab active">Properties (@Selected.Properties.Count)</div>
-                <div class="detail-tab muted">Relationships (@Selected.Relationships.Count)</div>
-                <div class="detail-tab muted">Attributes (@Selected.Attributes.Count)</div>
-                <div class="detail-tab muted">DAB exposure</div>
+                <div class="detail-tab @(ActiveTab == Tab.Properties ? "active" : "")" @onclick="() => ActiveTab = Tab.Properties">Properties (@Selected.Properties.Count)</div>
+                <div class="detail-tab @(ActiveTab == Tab.Relationships ? "active" : "")" @onclick="() => ActiveTab = Tab.Relationships">Relationships (@Selected.Relationships.Count)</div>
+                <div class="detail-tab @(ActiveTab == Tab.Attributes ? "active" : "")" @onclick="() => ActiveTab = Tab.Attributes">Attributes (@Selected.Attributes.Count)</div>
+                <div class="detail-tab @(ActiveTab == Tab.Dab ? "active" : "")" @onclick="() => ActiveTab = Tab.Dab">DAB exposure</div>
             </div>
             <div class="detail-body">
-                <table class="entities">
-                    <thead><tr><th>Name</th><th>Type</th><th>Null?</th><th>PK</th></tr></thead>
-                    <tbody>
-                        @foreach (var p in Selected.Properties)
-                        {
-                            <tr>
-                                <td><code>@p.Name</code></td>
-                                <td><code>@p.ClrType</code></td>
-                                <td>@(p.IsNullable ? "yes" : "no")</td>
-                                <td>@(p.IsPrimaryKey ? "✓" : "")</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                @switch (ActiveTab)
+                {
+                    case Tab.Properties:
+                        <EntityPropertiesTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
+                        break;
+                    case Tab.Relationships:
+                        <EntityRelationshipsTab Entity="@Selected" Entities="@(CatalogSnapshot?.Entities ?? [])" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
+                        break;
+                    case Tab.Attributes:
+                        <EntityAttributesTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
+                        break;
+                    case Tab.Dab:
+                        <EntityDabTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
+                        break;
+                }
             </div>
         }
     </section>
 </div>
 
+@if (ShowNewEntity)
+{
+    <NewEntityDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEntityDir" OnClose="() => { ShowNewEntity = false; }" OnCreated="ReloadAsync" />
+}
+
 @code {
+    private enum Tab { Properties, Relationships, Attributes, Dab }
+
     private string Filter { get; set; } = "";
+    private Tab ActiveTab { get; set; } = Tab.Properties;
     private Entity? Selected { get; set; }
     private EntityCatalog? CatalogSnapshot { get; set; }
+    private string? CsprojPath { get; set; }
+    private string DefaultEntityDir => CsprojPath is null ? Options.ProjectDir : Path.GetDirectoryName(CsprojPath)!;
     private string? LoadError { get; set; }
+    private bool ShowNewEntity { get; set; }
 
     private IReadOnlyList<Entity> FilteredEntities =>
         CatalogSnapshot is null ? []
@@ -73,21 +85,25 @@
             ? CatalogSnapshot.Entities
             : CatalogSnapshot.Entities.Where(e => e.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase)).ToList();
 
-    private string DefaultProjectPath => Path.Combine(Options.ProjectDir, "aspireform.yaml");
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
 
-    protected override async Task OnInitializedAsync()
+    private async Task ReloadAsync()
     {
         try
         {
-            // v1: assume the entity csproj is the first .csproj file in the project dir or its subdirs.
-            // A later iteration will resolve via aspireform.yaml's ef-data block.
-            var csproj = Directory.EnumerateFiles(Options.ProjectDir, "*.csproj", SearchOption.AllDirectories).FirstOrDefault();
-            if (csproj is null)
+            CsprojPath ??= Directory.EnumerateFiles(Options.ProjectDir, "*.csproj", SearchOption.AllDirectories).FirstOrDefault();
+            if (CsprojPath is null)
             {
-                LoadError = $"No .csproj found under '{Options.ProjectDir}'. Pass --project-dir to set the AspireForm project root.";
+                LoadError = $"No .csproj found under '{Options.ProjectDir}'.";
                 return;
             }
-            CatalogSnapshot = await Catalog.ScanAsync(csproj, default);
+            CatalogSnapshot = await Catalog.ScanAsync(CsprojPath, default);
+            LoadError = null;
+            // Re-pick selected entity after reload (it may have been renamed/deleted).
+            if (Selected is not null)
+            {
+                Selected = CatalogSnapshot.Entities.FirstOrDefault(e => e.Name == Selected.Name);
+            }
         }
         catch (Exception ex)
         {

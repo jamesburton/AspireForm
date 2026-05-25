@@ -1,0 +1,82 @@
+@inject IEntityCatalogService Catalog
+
+@if (Entity is null || CsprojPath is null) { return; }
+
+<table class="entities">
+    <thead><tr><th>Navigation</th><th>Target</th><th>Cardinality</th><th>FK</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var r in Entity.Relationships)
+        {
+            <tr>
+                <td><code>@r.Name</code></td>
+                <td><code>@r.TargetEntity</code></td>
+                <td>@r.Cardinality</td>
+                <td>@(r.ForeignKeyProperty ?? "(convention)")</td>
+                <td><button class="danger" @onclick="() => RemoveAsync(r.Name)">Remove</button></td>
+            </tr>
+        }
+        @if (Entity.Relationships.Count == 0)
+        {
+            <tr><td colspan="5" class="muted">No relationships defined.</td></tr>
+        }
+    </tbody>
+</table>
+
+<fieldset style="margin-top: .8rem; padding: .5rem .8rem; border: 1px solid #eee">
+    <legend>Add relationship</legend>
+    <div style="display:flex; gap: .5rem; align-items: center; flex-wrap: wrap">
+        <label>To entity:
+            <select @bind="NewTo">
+                <option value="">— select —</option>
+                @foreach (var e in (Entities ?? []).Where(e => e.Name != Entity.Name).OrderBy(e => e.Name, StringComparer.Ordinal))
+                {
+                    <option value="@e.Name">@e.Name</option>
+                }
+            </select>
+        </label>
+        <label>Cardinality:
+            <select @bind="NewCardinality">
+                <option value="OneToOne">OneToOne</option>
+                <option value="OneToMany">OneToMany</option>
+                <option value="ManyToOne">ManyToOne</option>
+            </select>
+        </label>
+        <button @onclick="AddAsync">Add</button>
+    </div>
+    @if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+</fieldset>
+
+@code {
+    [Parameter] public Entity? Entity { get; set; }
+    [Parameter] public IReadOnlyList<Entity>? Entities { get; set; }
+    [Parameter] public string? CsprojPath { get; set; }
+    [Parameter] public EventCallback OnMutated { get; set; }
+
+    private string NewTo { get; set; } = "";
+    private string NewCardinality { get; set; } = "OneToMany";
+    private string? LastError { get; set; }
+
+    private async Task AddAsync()
+    {
+        LastError = null;
+        if (string.IsNullOrEmpty(NewTo)) { LastError = "Pick a target entity."; return; }
+        if (!Enum.TryParse<RelationshipCardinality>(NewCardinality, out var card))
+        {
+            LastError = "Invalid cardinality."; return;
+        }
+        var r = await Catalog.MutateAsync(CsprojPath!,
+            new AddRelationship(Entity!.Name, NewTo, card, null),
+            default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Add failed."; return; }
+        NewTo = "";
+        await OnMutated.InvokeAsync();
+    }
+
+    private async Task RemoveAsync(string relName)
+    {
+        LastError = null;
+        var r = await Catalog.MutateAsync(CsprojPath!, new RemoveRelationship(Entity!.Name, relName), default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Remove failed."; return; }
+        await OnMutated.InvokeAsync();
+    }
+}

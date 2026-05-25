@@ -1,0 +1,47 @@
+@inject IEntityCatalogService Catalog
+
+@if (Entity is null || CsprojPath is null) { return; }
+
+<table class="entities">
+    <thead><tr><th>Attribute</th><th>Args</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var a in Entity.Attributes)
+        {
+            <tr>
+                <td><code>@a.FullTypeName</code></td>
+                <td><code>@FormatArgs(a)</code></td>
+                <td><button class="danger" @onclick="() => ClearAsync(a.FullTypeName)">Clear</button></td>
+            </tr>
+        }
+        @if (Entity.Attributes.Count == 0)
+        {
+            <tr><td colspan="3" class="muted">No class-level attributes.</td></tr>
+        }
+    </tbody>
+</table>
+
+@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+
+@code {
+    [Parameter] public Entity? Entity { get; set; }
+    [Parameter] public string? CsprojPath { get; set; }
+    [Parameter] public EventCallback OnMutated { get; set; }
+
+    private string? LastError { get; set; }
+
+    private static string FormatArgs(AttributeInstance a)
+    {
+        var parts = new List<string>();
+        foreach (var c in a.ConstructorArgs) parts.Add(c?.ToString() ?? "null");
+        foreach (var n in a.NamedArgs) parts.Add($"{n.Key}={n.Value}");
+        return parts.Count == 0 ? "" : string.Join(", ", parts);
+    }
+
+    private async Task ClearAsync(string fullTypeName)
+    {
+        LastError = null;
+        var r = await Catalog.MutateAsync(CsprojPath!, new ClearAttribute(Entity!.Name, null, fullTypeName), default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Clear failed."; return; }
+        await OnMutated.InvokeAsync();
+    }
+}

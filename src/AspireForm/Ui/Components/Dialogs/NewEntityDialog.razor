@@ -1,0 +1,43 @@
+@inject IEntityCatalogService Catalog
+
+<div style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10">
+    <div style="background:#fff;padding:1rem 1.25rem;border-radius:6px;min-width:380px">
+        <h3 style="margin-top:0">New Entity</h3>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+            <label>Name <input type="text" @bind="Name" /></label>
+            <label>Namespace <input type="text" @bind="Namespace" placeholder="Demo.Models" /></label>
+            <label>File path <input type="text" @bind="FilePath" placeholder="@DefaultDir/Models/Book.cs" style="width:100%" /></label>
+        </div>
+        @if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.8rem">
+            <button @onclick="OnClose">Cancel</button>
+            <button @onclick="CreateAsync">Create</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? CsprojPath { get; set; }
+    [Parameter] public string DefaultDir { get; set; } = "";
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnCreated { get; set; }
+
+    private string Name { get; set; } = "";
+    private string Namespace { get; set; } = "";
+    private string FilePath { get; set; } = "";
+    private string? LastError { get; set; }
+
+    private async Task CreateAsync()
+    {
+        LastError = null;
+        if (string.IsNullOrWhiteSpace(Name) || string.IsNullOrWhiteSpace(Namespace) || string.IsNullOrWhiteSpace(FilePath))
+        {
+            LastError = "All fields required.";
+            return;
+        }
+        var absPath = Path.IsPathRooted(FilePath) ? FilePath : Path.Combine(DefaultDir, FilePath);
+        var r = await Catalog.MutateAsync(CsprojPath!, new CreateEntity(Name, Namespace, absPath), default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Create failed."; return; }
+        await OnCreated.InvokeAsync();
+    }
+}

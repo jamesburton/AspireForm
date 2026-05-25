@@ -1,0 +1,42 @@
+@inject IEntityCatalogService Catalog
+
+@if (Entity is null || CsprojPath is null) { return; }
+
+<div style="display:flex; flex-direction: column; gap: .5rem; max-width: 520px">
+    <label><input type="checkbox" checked="@IsExposed" @onchange="ToggleExposeAsync" /> Expose via DAB <span class="muted">([DabExpose])</span></label>
+    <label><input type="checkbox" checked="@IsHidden" @onchange="ToggleHiddenAsync" /> Hide from DAB <span class="muted">([DabHidden] — overrides expose)</span></label>
+    <label><input type="checkbox" checked="@IsRestOnly" @onchange="ToggleRestOnlyAsync" /> REST only <span class="muted">([DabRestOnly])</span></label>
+    <label><input type="checkbox" checked="@IsGraphqlOnly" @onchange="ToggleGraphqlOnlyAsync" /> GraphQL only <span class="muted">([DabGraphqlOnly])</span></label>
+</div>
+
+@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+
+@code {
+    [Parameter] public Entity? Entity { get; set; }
+    [Parameter] public string? CsprojPath { get; set; }
+    [Parameter] public EventCallback OnMutated { get; set; }
+
+    private bool IsExposed => Entity!.Attributes.Any(a => a.FullTypeName == "AspireForm.Annotations.DabExposeAttribute");
+    private bool IsHidden => Entity!.Attributes.Any(a => a.FullTypeName == "AspireForm.Annotations.DabHiddenAttribute");
+    private bool IsRestOnly => Entity!.Attributes.Any(a => a.FullTypeName == "AspireForm.Annotations.DabRestOnlyAttribute");
+    private bool IsGraphqlOnly => Entity!.Attributes.Any(a => a.FullTypeName == "AspireForm.Annotations.DabGraphqlOnlyAttribute");
+
+    private string? LastError { get; set; }
+
+    private Task ToggleExposeAsync() => ToggleAsync("AspireForm.Annotations.DabExposeAttribute", IsExposed);
+    private Task ToggleHiddenAsync() => ToggleAsync("AspireForm.Annotations.DabHiddenAttribute", IsHidden);
+    private Task ToggleRestOnlyAsync() => ToggleAsync("AspireForm.Annotations.DabRestOnlyAttribute", IsRestOnly);
+    private Task ToggleGraphqlOnlyAsync() => ToggleAsync("AspireForm.Annotations.DabGraphqlOnlyAttribute", IsGraphqlOnly);
+
+    private async Task ToggleAsync(string fullTypeName, bool currentlyPresent)
+    {
+        LastError = null;
+        EntityChangeRequest req = currentlyPresent
+            ? new ClearAttribute(Entity!.Name, null, fullTypeName)
+            : new SetAttribute(Entity!.Name, null,
+                new AttributeInstance(fullTypeName, [], new Dictionary<string, object?>()));
+        var r = await Catalog.MutateAsync(CsprojPath!, req, default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Toggle failed."; return; }
+        await OnMutated.InvokeAsync();
+    }
+}

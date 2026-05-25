@@ -1,0 +1,47 @@
+@inject IEntityCatalogService Catalog
+
+@if (Entity is null || CsprojPath is null) { return; }
+
+<table class="entities">
+    <thead><tr><th>Name</th><th>Type</th><th>Null?</th><th>PK</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var p in Entity.Properties)
+        {
+            <tr>
+                <td><code>@p.Name</code></td>
+                <td><code>@p.ClrType</code></td>
+                <td>@(p.IsNullable ? "yes" : "no")</td>
+                <td>@(p.IsPrimaryKey ? "✓" : "")</td>
+                <td><button class="danger" @onclick="() => RemoveAsync(p.Name)">Remove</button></td>
+            </tr>
+        }
+    </tbody>
+</table>
+<p style="margin-top:.6rem"><button @onclick="() => ShowAdd = true">+ Add Property</button></p>
+
+@if (ShowAdd)
+{
+    <AddPropertyDialog CsprojPath="@CsprojPath" EntityName="@Entity.Name"
+        OnClose="() => { ShowAdd = false; }" OnAdded="AfterAddedAsync" />
+}
+
+@if (LastError is not null) { <div class="banner">@LastError</div> }
+
+@code {
+    [Parameter] public Entity? Entity { get; set; }
+    [Parameter] public string? CsprojPath { get; set; }
+    [Parameter] public EventCallback OnMutated { get; set; }
+
+    private bool ShowAdd { get; set; }
+    private string? LastError { get; set; }
+
+    private async Task RemoveAsync(string propertyName)
+    {
+        LastError = null;
+        var r = await Catalog.MutateAsync(CsprojPath!, new RemoveProperty(Entity!.Name, propertyName), default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Remove failed."; return; }
+        await OnMutated.InvokeAsync();
+    }
+
+    private async Task AfterAddedAsync() { ShowAdd = false; await OnMutated.InvokeAsync(); }
+}
