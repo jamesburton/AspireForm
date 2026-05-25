@@ -30,6 +30,7 @@ internal static class UiHost
         {
             app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(wwwroot) });
         }
+        app.UseAntiforgery();
         app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         var url = $"http://localhost:{opts.Port}";
