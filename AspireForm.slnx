@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/AspireForm/AspireForm.csproj" />
+    <Project Path="src/AspireForm.Annotations/AspireForm.Annotations.csproj" />
   </Folder>
   <Folder Name="/src/Plugins/">
     <Project Path="src/Plugins/AspireForm.Plugin.Auth.ApiKey/AspireForm.Plugin.Auth.ApiKey.csproj" />
