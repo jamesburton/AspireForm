@@ -34,6 +34,9 @@ app.Configure(config =>
     config.AddCommand<McpCommand>("mcp")
         .WithDescription("Start an MCP server exposing AspireForm's verbs (stdio by default; --http for localhost HTTP).");
 
+    config.AddCommand<UiCommand>("ui")
+        .WithDescription("Start the EF model builder UI (Blazor Server on localhost; --port to set the port).");
+
     config.AddBranch("state", state =>
     {
         state.SetDescription("Inspect AspireForm's tracked state.");
