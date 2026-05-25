@@ -1,0 +1,80 @@
+using System.ComponentModel;
+using AspireForm.Mcp;
+using AspireForm.Mcp.Tools;
+using AspireForm.Mcp.Tools.Macros;
+using Spectre.Console.Cli;
+
+namespace AspireForm.Cli;
+
+/// <summary>The <c>mcp</c> command: starts an MCP server exposing AspireForm's verbs as tools. Defaults to stdio; pass <c>--http --port N</c> for HTTP.</summary>
+public sealed class McpCommand : AsyncCommand<McpCommand.Settings>
+{
+    /// <summary>Options for <c>mcp</c>.</summary>
+    public sealed class Settings : CommandSettings
+    {
+        /// <summary>Default project directory used by tool handlers when their args omit <c>projectDir</c>.</summary>
+        [CommandOption("-p|--project-dir <DIR>")]
+        [Description("Default project directory for tool calls that omit 'projectDir'.")]
+        public string ProjectDir { get; init; } = ".";
+
+        /// <summary>Use HTTP transport instead of stdio.</summary>
+        [CommandOption("--http")]
+        [Description("Use HTTP transport (localhost only) instead of stdio.")]
+        public bool Http { get; init; }
+
+        /// <summary>Port for the HTTP transport. Ignored unless <c>--http</c> is supplied.</summary>
+        [CommandOption("--port <PORT>")]
+        [Description("Port for the HTTP transport (default 5050).")]
+        public int Port { get; init; } = 5050;
+    }
+
+    /// <inheritdoc />
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    {
+        var projectDir = Path.GetFullPath(settings.ProjectDir);
+        var registry = BuildRegistry(projectDir);
+        var server = new McpServer(registry);
+        ITransport transport = settings.Http
+            ? new HttpTransport(settings.Port)
+            : new StdioTransport();
+
+        try
+        {
+            await transport.RunAsync(server, cancellationToken);
+            return 0;
+        }
+        catch (OperationCanceledException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>Builds the registry of all 14 low-level tools and 3 macros, all bound to <paramref name="projectDir"/> as their default.</summary>
+    public static ToolRegistry BuildRegistry(string projectDir)
+    {
+        var r = new ToolRegistry();
+
+        // Low-level (14).
+        r.Register(new ConfigTool(projectDir));
+        r.Register(new PlanTool(projectDir));
+        r.Register(new ApplyTool(projectDir));
+        r.Register(new NewTool(projectDir));
+        r.Register(new AddTool(projectDir));
+        r.Register(new DestroyTool(projectDir));
+        r.Register(new ImportTool(projectDir));
+        r.Register(new StateListTool(projectDir));
+        r.Register(new StateShowTool(projectDir));
+        r.Register(new DoctorTool());
+        r.Register(new PluginListTool(projectDir));
+        r.Register(new PluginInstallTool(projectDir));
+        r.Register(new PluginUpdateTool(projectDir));
+        r.Register(new PluginRemoveTool(projectDir));
+
+        // Macros (3).
+        r.Register(new ScaffoldAspireAppWithDataTool(projectDir));
+        r.Register(new AddCacheLayerTool(projectDir));
+        r.Register(new AddAuthenticationTool(projectDir));
+
+        return r;
+    }
+}
