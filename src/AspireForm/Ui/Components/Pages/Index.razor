@@ -1,0 +1,17 @@
+@page "/"
+@inject NavigationManager Nav
+@inject UiOptions Options
+
+<PageTitle>AspireForm</PageTitle>
+
+<div style="padding: 1rem">
+    <h2>AspireForm — Entity Model Builder</h2>
+    <p>Project directory: <span class="kbd">@Options.ProjectDir</span></p>
+    <p>
+        <a href="/entities">Browse entities →</a>
+    </p>
+</div>
+
+@code {
+    // v1 simply links to /entities. A later iteration may auto-redirect when there's exactly one ef-data block.
+}

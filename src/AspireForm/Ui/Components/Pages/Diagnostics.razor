@@ -1,0 +1,40 @@
+@page "/diagnostics"
+@inject IEntityCatalogService Catalog
+@inject UiOptions Options
+
+<PageTitle>Diagnostics — AspireForm</PageTitle>
+
+<div style="padding: 1rem">
+    <h2>Diagnostics</h2>
+    @if (Snapshot is null)
+    {
+        <p class="muted">Loading...</p>
+    }
+    else if (Snapshot.Diagnostics.Count == 0)
+    {
+        <p>No diagnostics — workspace loaded clean.</p>
+    }
+    else
+    {
+        <table class="entities">
+            <thead><tr><th>Severity</th><th>Message</th><th>File</th><th>Line</th></tr></thead>
+            <tbody>
+                @foreach (var d in Snapshot.Diagnostics)
+                {
+                    <tr><td>@d.Severity</td><td>@d.Message</td><td>@d.FilePath</td><td>@d.Line</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private EntityCatalog? Snapshot { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var csproj = Directory.EnumerateFiles(Options.ProjectDir, "*.csproj", SearchOption.AllDirectories).FirstOrDefault();
+        if (csproj is null) return;
+        try { Snapshot = await Catalog.ScanAsync(csproj, default); } catch { /* surfaced on /entities */ }
+    }
+}

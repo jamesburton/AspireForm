@@ -1,0 +1,12 @@
+@page "/about"
+@inject UiOptions Options
+
+<PageTitle>About — AspireForm</PageTitle>
+
+<div style="padding: 1rem">
+    <h2>About</h2>
+    <p>AspireForm version: <span class="kbd">@(typeof(UiOptions).Assembly.GetName().Version?.ToString() ?? "0.0.0")</span></p>
+    <p>Project directory: <span class="kbd">@Options.ProjectDir</span></p>
+    <p>Port: <span class="kbd">@Options.Port</span></p>
+    <p>Stop the host with <span class="kbd">Ctrl+C</span> in the terminal where you started <span class="kbd">aspireform ui</span>.</p>
+</div>

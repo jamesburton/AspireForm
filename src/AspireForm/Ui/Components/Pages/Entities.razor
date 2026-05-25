@@ -1,0 +1,99 @@
+@page "/entities"
+@inject IEntityCatalogService Catalog
+@inject UiOptions Options
+
+<PageTitle>Entities — AspireForm</PageTitle>
+
+<div class="two-pane">
+    <aside class="sidebar">
+        <div class="sidebar-actions">
+            <input type="text" placeholder="Search entities..." @bind="Filter" @bind:event="oninput" style="width:100%" />
+        </div>
+        <div class="sidebar-actions">
+            <span class="muted" style="font-size:.8em">@FilteredEntities.Count entities</span>
+        </div>
+        <div class="sidebar-list">
+            @foreach (var e in FilteredEntities.OrderBy(e => e.Name, StringComparer.Ordinal))
+            {
+                <div class="sidebar-item @(Selected?.Name == e.Name ? "active" : "")" @onclick="() => Select(e)">@e.Name</div>
+            }
+            @if (FilteredEntities.Count == 0)
+            {
+                <div class="sidebar-item muted">No entities</div>
+            }
+        </div>
+    </aside>
+    <section class="detail">
+        @if (LoadError is not null)
+        {
+            <div class="banner">@LoadError</div>
+        }
+        @if (Selected is null)
+        {
+            <div class="detail-body muted">Select an entity from the sidebar to view its details.</div>
+        }
+        else
+        {
+            <EntityHeader Entity="@Selected" />
+            <div class="detail-tabs">
+                <div class="detail-tab active">Properties (@Selected.Properties.Count)</div>
+                <div class="detail-tab muted">Relationships (@Selected.Relationships.Count)</div>
+                <div class="detail-tab muted">Attributes (@Selected.Attributes.Count)</div>
+                <div class="detail-tab muted">DAB exposure</div>
+            </div>
+            <div class="detail-body">
+                <table class="entities">
+                    <thead><tr><th>Name</th><th>Type</th><th>Null?</th><th>PK</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in Selected.Properties)
+                        {
+                            <tr>
+                                <td><code>@p.Name</code></td>
+                                <td><code>@p.ClrType</code></td>
+                                <td>@(p.IsNullable ? "yes" : "no")</td>
+                                <td>@(p.IsPrimaryKey ? "✓" : "")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private string Filter { get; set; } = "";
+    private Entity? Selected { get; set; }
+    private EntityCatalog? CatalogSnapshot { get; set; }
+    private string? LoadError { get; set; }
+
+    private IReadOnlyList<Entity> FilteredEntities =>
+        CatalogSnapshot is null ? []
+        : string.IsNullOrEmpty(Filter)
+            ? CatalogSnapshot.Entities
+            : CatalogSnapshot.Entities.Where(e => e.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private string DefaultProjectPath => Path.Combine(Options.ProjectDir, "aspireform.yaml");
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // v1: assume the entity csproj is the first .csproj file in the project dir or its subdirs.
+            // A later iteration will resolve via aspireform.yaml's ef-data block.
+            var csproj = Directory.EnumerateFiles(Options.ProjectDir, "*.csproj", SearchOption.AllDirectories).FirstOrDefault();
+            if (csproj is null)
+            {
+                LoadError = $"No .csproj found under '{Options.ProjectDir}'. Pass --project-dir to set the AspireForm project root.";
+                return;
+            }
+            CatalogSnapshot = await Catalog.ScanAsync(csproj, default);
+        }
+        catch (Exception ex)
+        {
+            LoadError = $"Scan failed: {ex.Message}";
+        }
+    }
+
+    private void Select(Entity e) => Selected = e;
+}
