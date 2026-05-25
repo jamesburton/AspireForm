@@ -77,4 +77,67 @@ public sealed class RoslynEntityMutatorTests
         result.Success.Should().BeFalse();
         result.Diagnostics[0].Message.Should().Contain("not found");
     }
+
+    [Fact]
+    public async Task AddProperty_appends_a_property_to_the_class()
+    {
+        using var fix = new FixtureProjectBuilder("mut_addprop");
+        var bookFile = fix.AddFile("Book.cs", """
+            namespace Demo;
+            public class Book { public int Id { get; set; } }
+            """);
+
+        var mutator = new RoslynEntityMutator();
+        var result = await mutator.ApplyAsync(
+            fix.CsprojPath,
+            new AddProperty("Book", new Property("Title", "string", IsNullable: false, IsPrimaryKey: false, Attributes: [])),
+            default);
+
+        result.Success.Should().BeTrue();
+        var updated = File.ReadAllText(bookFile);
+        updated.Should().Contain("public string Title");
+        updated.Should().Contain("public int Id");
+    }
+
+    [Fact]
+    public async Task RemoveProperty_strips_the_property_declaration()
+    {
+        using var fix = new FixtureProjectBuilder("mut_rmprop");
+        var bookFile = fix.AddFile("Book.cs", """
+            namespace Demo;
+            public class Book { public int Id { get; set; } public string Title { get; set; } = ""; }
+            """);
+
+        var mutator = new RoslynEntityMutator();
+        var result = await mutator.ApplyAsync(
+            fix.CsprojPath,
+            new RemoveProperty("Book", "Title"),
+            default);
+
+        result.Success.Should().BeTrue();
+        var updated = File.ReadAllText(bookFile);
+        updated.Should().NotContain("Title");
+        updated.Should().Contain("public int Id");
+    }
+
+    [Fact]
+    public async Task RenameProperty_renames_declarations_via_symbol_rename()
+    {
+        using var fix = new FixtureProjectBuilder("mut_rename");
+        var bookFile = fix.AddFile("Book.cs", """
+            namespace Demo;
+            public class Book { public int Id { get; set; } public string Name { get; set; } = ""; }
+            """);
+
+        var mutator = new RoslynEntityMutator();
+        var result = await mutator.ApplyAsync(
+            fix.CsprojPath,
+            new RenameProperty("Book", "Name", "Title"),
+            default);
+
+        result.Success.Should().BeTrue();
+        var updated = File.ReadAllText(bookFile);
+        updated.Should().Contain("Title");
+        updated.Should().NotContain("Name");
+    }
 }

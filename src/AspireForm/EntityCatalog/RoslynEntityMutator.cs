@@ -49,6 +49,85 @@ public sealed class RoslynEntityMutator
                 }
                 break;
 
+            case AddProperty add:
+            {
+                using var ws = MSBuildWorkspace.Create();
+                var project = await ws.OpenProjectAsync(absolute, cancellationToken: ct);
+                var doc = await FindEntityDocumentAsync(project, add.EntityName, ct);
+                if (doc is null) return MutationResult.Fail($"Entity '{add.EntityName}' not found.");
+
+                var tree = await doc.GetSyntaxTreeAsync(ct);
+                var root = (CompilationUnitSyntax?)await tree!.GetRootAsync(ct);
+                var classNode = root!.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                    .FirstOrDefault(c => c.Identifier.Text == add.EntityName);
+                if (classNode is null) return MutationResult.Fail($"Class '{add.EntityName}' not found in {doc.FilePath}.");
+
+                var prop = RenderProperty(add.Property);
+                var newClass = classNode.AddMembers(prop);
+                var newRoot = root.ReplaceNode(classNode, newClass);
+                pending[doc.FilePath!] = newRoot.NormalizeWhitespace().ToFullString();
+                break;
+            }
+
+            case RemoveProperty remove:
+            {
+                using var ws = MSBuildWorkspace.Create();
+                var project = await ws.OpenProjectAsync(absolute, cancellationToken: ct);
+                var doc = await FindEntityDocumentAsync(project, remove.EntityName, ct);
+                if (doc is null) return MutationResult.Fail($"Entity '{remove.EntityName}' not found.");
+
+                var tree = await doc.GetSyntaxTreeAsync(ct);
+                var root = (CompilationUnitSyntax?)await tree!.GetRootAsync(ct);
+                var classNode = root!.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                    .FirstOrDefault(c => c.Identifier.Text == remove.EntityName);
+                if (classNode is null) return MutationResult.Fail($"Class '{remove.EntityName}' not found.");
+
+                var propNode = classNode.Members.OfType<PropertyDeclarationSyntax>()
+                    .FirstOrDefault(p => p.Identifier.Text == remove.PropertyName);
+                if (propNode is null) return MutationResult.Fail($"Property '{remove.PropertyName}' not found on '{remove.EntityName}'.");
+
+                var newClass = classNode.RemoveNode(propNode, SyntaxRemoveOptions.KeepNoTrivia)!;
+                var newRoot = root.ReplaceNode(classNode, newClass);
+                pending[doc.FilePath!] = newRoot.ToFullString();
+                break;
+            }
+
+            case RenameProperty rename:
+            {
+                using var ws = MSBuildWorkspace.Create();
+                var project = await ws.OpenProjectAsync(absolute, cancellationToken: ct);
+                var compilation = await project.GetCompilationAsync(ct);
+                var entitySym = compilation!.Assembly.GlobalNamespace.GetAllTypes()
+                    .FirstOrDefault(t => t.Name == rename.EntityName);
+                if (entitySym is null) return MutationResult.Fail($"Entity '{rename.EntityName}' not found.");
+
+                var propSym = entitySym.GetMembers().OfType<IPropertySymbol>()
+                    .FirstOrDefault(p => p.Name == rename.OldName);
+                if (propSym is null) return MutationResult.Fail($"Property '{rename.OldName}' not found on '{rename.EntityName}'.");
+
+                var newSolution = await Microsoft.CodeAnalysis.Rename.Renamer.RenameSymbolAsync(
+                    project.Solution, propSym, new Microsoft.CodeAnalysis.Rename.SymbolRenameOptions(), rename.NewName, ct);
+
+                // Stage all changed documents in pending.
+                var changes = newSolution.GetChanges(project.Solution);
+                foreach (var projChange in changes.GetProjectChanges())
+                {
+                    foreach (var docId in projChange.GetChangedDocuments())
+                    {
+                        var newDoc = newSolution.GetDocument(docId)!;
+                        var text = await newDoc.GetTextAsync(ct);
+                        pending[newDoc.FilePath!] = text.ToString();
+                    }
+                }
+                if (pending.Count == 0)
+                {
+                    diagnostics.Add(new CatalogDiagnostic("warning",
+                        $"Rename produced no file changes — '{rename.OldName}' may already be '{rename.NewName}' or symbol resolution failed.",
+                        null, null));
+                }
+                break;
+            }
+
             default:
                 return MutationResult.Fail($"Mutation '{request.GetType().Name}' is not implemented yet.");
         }
@@ -102,6 +181,15 @@ public sealed class RoslynEntityMutator
             public int Id { get; set; }
         }
         """;
+
+    private static PropertyDeclarationSyntax RenderProperty(Property p)
+    {
+        var typeName = p.IsNullable && !p.ClrType.EndsWith("?")
+            ? p.ClrType + "?"
+            : p.ClrType;
+        var src = $"public {typeName} {p.Name} {{ get; set; }}";
+        return (PropertyDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(src)!;
+    }
 }
 
 internal static class SymbolWalker
