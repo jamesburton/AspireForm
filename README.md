@@ -41,6 +41,41 @@ AspireForm is a zero-install .NET tool. With the .NET 10 SDK present:
 | `aspireform plugin update <name>` | Update a plugin to the latest version. |
 | `aspireform plugin remove <name>` | Remove a plugin from the lockfile. |
 
+## Use with an agent (MCP server)
+
+AspireForm includes an MCP server that exposes its verbs as tools, so AI agents can chat-construct an Aspire app:
+
+```bash
+aspireform mcp                         # stdio (default — for Claude Desktop / Claude Code / Aspire CLI)
+aspireform mcp --http --port 5050      # localhost HTTP transport
+aspireform mcp --project-dir ./myapp   # set the default projectDir for tool calls
+```
+
+### Claude Code config snippet
+
+Add to `~/.claude/mcp.json` (or the project-scoped equivalent):
+
+```json
+{
+  "mcpServers": {
+    "aspireform": {
+      "command": "dnx",
+      "args": ["AspireForm", "mcp"]
+    }
+  }
+}
+```
+
+### Tool surface
+
+**14 low-level tools** mirror the CLI verbs:
+`aspireform_new`, `aspireform_add`, `aspireform_config`, `aspireform_plan`, `aspireform_apply`, `aspireform_destroy`, `aspireform_import`, `aspireform_state_list`, `aspireform_state_show`, `aspireform_doctor`, `aspireform_plugin_list`, `aspireform_plugin_install`, `aspireform_plugin_update`, `aspireform_plugin_remove`.
+
+**3 curated macros** orchestrate common recipes:
+`scaffold_aspire_app_with_data`, `add_cache_layer`, `add_authentication`.
+
+> **Security:** the HTTP transport binds localhost only and has no authentication in this version. Do not expose it on a public interface.
+
 ## Configuration
 
 A minimal `aspireform.yaml`:

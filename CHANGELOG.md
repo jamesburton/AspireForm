@@ -4,6 +4,16 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-05-25
+
+### Added
+- `aspireform mcp` verb: starts an MCP (Model Context Protocol) server exposing AspireForm's verbs as tools to AI agents.
+  - Two transports: stdio (default) and HTTP on localhost (`--http --port N`).
+  - 14 low-level tools (one per CLI verb): `aspireform_{new, add, config, plan, apply, destroy, import, state_list, state_show, doctor, plugin_list, plugin_install, plugin_update, plugin_remove}`.
+  - 3 curated macros: `scaffold_aspire_app_with_data`, `add_cache_layer`, `add_authentication`.
+  - In-process: tool handlers call the same internal services the CLI commands use — no shell-out.
+- README "Use with an agent" section with Claude Code config snippet.
+
 ## [0.3.2] - 2026-05-24
 
 Plugin shape #2: `.cs`-script plugins.
