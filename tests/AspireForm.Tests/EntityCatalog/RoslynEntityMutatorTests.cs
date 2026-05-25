@@ -140,4 +140,81 @@ public sealed class RoslynEntityMutatorTests
         updated.Should().Contain("Title");
         updated.Should().NotContain("Name");
     }
+
+    [Fact]
+    public async Task SetAttribute_adds_a_class_level_attribute()
+    {
+        using var fix = new FixtureProjectBuilder("mut_setattr");
+        var bookFile = fix.AddFile("Book.cs", "namespace Demo; public class Book { public int Id { get; set; } }");
+
+        var mutator = new RoslynEntityMutator();
+        var attr = new AttributeInstance("AspireForm.Annotations.DabExposeAttribute", [], new Dictionary<string, object?>());
+        var result = await mutator.ApplyAsync(
+            fix.CsprojPath,
+            new SetAttribute("Book", null, attr),
+            default);
+
+        result.Success.Should().BeTrue();
+        var updated = File.ReadAllText(bookFile);
+        updated.Should().Contain("[DabExpose]");
+    }
+
+    [Fact]
+    public async Task ClearAttribute_removes_a_class_level_attribute()
+    {
+        using var fix = new FixtureProjectBuilder("mut_clearattr");
+        var bookFile = fix.AddFile("Book.cs", """
+            namespace Demo;
+            [AspireForm.Annotations.DabExpose]
+            public class Book { public int Id { get; set; } }
+            """);
+
+        var mutator = new RoslynEntityMutator();
+        var result = await mutator.ApplyAsync(
+            fix.CsprojPath,
+            new ClearAttribute("Book", null, "AspireForm.Annotations.DabExposeAttribute"),
+            default);
+
+        result.Success.Should().BeTrue();
+        var updated = File.ReadAllText(bookFile);
+        updated.Should().NotContain("DabExpose");
+    }
+
+    [Fact]
+    public async Task AddRelationship_OneToMany_adds_collection_on_from_and_scalar_back_on_to()
+    {
+        using var fix = new FixtureProjectBuilder("mut_addrel");
+        var modelsFile = fix.AddFile("Models.cs", """
+            namespace Demo;
+            public class Author { public int Id { get; set; } }
+            public class Book { public int Id { get; set; } }
+            """);
+
+        var mutator = new RoslynEntityMutator();
+        var result = await mutator.ApplyAsync(
+            fix.CsprojPath,
+            new AddRelationship("Author", "Book", RelationshipCardinality.OneToMany, null),
+            default);
+
+        result.Success.Should().BeTrue();
+        var updated = File.ReadAllText(modelsFile);
+        updated.Should().Contain("ICollection<Book> Book");
+        updated.Should().Contain("Author Author");
+    }
+
+    [Fact]
+    public async Task AddRelationship_ManyToMany_returns_failure_in_v1()
+    {
+        using var fix = new FixtureProjectBuilder("mut_addrel_m2m");
+        fix.AddFile("Models.cs", "namespace Demo; public class A { public int Id { get; set; } } public class B { public int Id { get; set; } }");
+
+        var mutator = new RoslynEntityMutator();
+        var result = await mutator.ApplyAsync(
+            fix.CsprojPath,
+            new AddRelationship("A", "B", RelationshipCardinality.ManyToMany, null),
+            default);
+
+        result.Success.Should().BeFalse();
+        result.Diagnostics[0].Message.Should().Contain("ManyToMany");
+    }
 }

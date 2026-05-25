@@ -128,6 +128,125 @@ public sealed class RoslynEntityMutator
                 break;
             }
 
+            case SetAttribute set:
+            {
+                using var ws = MSBuildWorkspace.Create();
+                var project = await ws.OpenProjectAsync(absolute, cancellationToken: ct);
+                var doc = await FindEntityDocumentAsync(project, set.EntityName, ct);
+                if (doc is null) return MutationResult.Fail($"Entity '{set.EntityName}' not found.");
+
+                var tree = await doc.GetSyntaxTreeAsync(ct);
+                var root = (CompilationUnitSyntax?)await tree!.GetRootAsync(ct);
+                var classNode = root!.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                    .FirstOrDefault(c => c.Identifier.Text == set.EntityName);
+                if (classNode is null) return MutationResult.Fail($"Class '{set.EntityName}' not found.");
+
+                var attrText = RenderAttribute(set.Attribute);
+                var attrList = (AttributeListSyntax)SyntaxFactory.ParseCompilationUnit($"{attrText}\nclass X {{}}")
+                    .DescendantNodes().OfType<AttributeListSyntax>().First();
+
+                SyntaxNode newRoot;
+                if (set.PropertyName is null)
+                {
+                    var clearedClass = WithoutAttribute(classNode, set.Attribute.FullTypeName);
+                    var newClass = clearedClass.WithAttributeLists(clearedClass.AttributeLists.Add(attrList));
+                    newRoot = root.ReplaceNode(classNode, newClass);
+                }
+                else
+                {
+                    var propNode = classNode.Members.OfType<PropertyDeclarationSyntax>()
+                        .FirstOrDefault(p => p.Identifier.Text == set.PropertyName);
+                    if (propNode is null) return MutationResult.Fail($"Property '{set.PropertyName}' not found.");
+                    var clearedProp = WithoutAttribute(propNode, set.Attribute.FullTypeName);
+                    var newProp = clearedProp.WithAttributeLists(clearedProp.AttributeLists.Add(attrList));
+                    newRoot = root.ReplaceNode(propNode, newProp);
+                }
+
+                pending[doc.FilePath!] = newRoot.ToFullString();
+                break;
+            }
+
+            case ClearAttribute clear:
+            {
+                using var ws = MSBuildWorkspace.Create();
+                var project = await ws.OpenProjectAsync(absolute, cancellationToken: ct);
+                var doc = await FindEntityDocumentAsync(project, clear.EntityName, ct);
+                if (doc is null) return MutationResult.Fail($"Entity '{clear.EntityName}' not found.");
+
+                var tree = await doc.GetSyntaxTreeAsync(ct);
+                var root = (CompilationUnitSyntax?)await tree!.GetRootAsync(ct);
+                var classNode = root!.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                    .FirstOrDefault(c => c.Identifier.Text == clear.EntityName);
+                if (classNode is null) return MutationResult.Fail($"Class '{clear.EntityName}' not found.");
+
+                SyntaxNode newRoot;
+                if (clear.PropertyName is null)
+                {
+                    newRoot = root.ReplaceNode(classNode, WithoutAttribute(classNode, clear.AttributeFullTypeName));
+                }
+                else
+                {
+                    var propNode = classNode.Members.OfType<PropertyDeclarationSyntax>()
+                        .FirstOrDefault(p => p.Identifier.Text == clear.PropertyName);
+                    if (propNode is null) return MutationResult.Fail($"Property '{clear.PropertyName}' not found.");
+                    newRoot = root.ReplaceNode(propNode, WithoutAttribute(propNode, clear.AttributeFullTypeName));
+                }
+                pending[doc.FilePath!] = newRoot.ToFullString();
+                break;
+            }
+
+            case AddRelationship rel:
+            {
+                if (rel.Cardinality == RelationshipCardinality.ManyToMany)
+                {
+                    return MutationResult.Fail("ManyToMany relationships are not supported in v1 (deferred to #4a.1).");
+                }
+
+                using var ws = MSBuildWorkspace.Create();
+                var project = await ws.OpenProjectAsync(absolute, cancellationToken: ct);
+                var fromDoc = await FindEntityDocumentAsync(project, rel.FromEntity, ct);
+                var toDoc = await FindEntityDocumentAsync(project, rel.ToEntity, ct);
+                if (fromDoc is null) return MutationResult.Fail($"Entity '{rel.FromEntity}' not found.");
+                if (toDoc is null) return MutationResult.Fail($"Entity '{rel.ToEntity}' not found.");
+
+                if (!string.Equals(fromDoc.FilePath, toDoc.FilePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    pending[fromDoc.FilePath!] = await AddRelationshipToFromAsync(fromDoc, rel, ct);
+                    pending[toDoc.FilePath!] = await AddRelationshipToToAsync(toDoc, rel, ct);
+                }
+                else
+                {
+                    pending[fromDoc.FilePath!] = await AddBothSidesInOneFileAsync(fromDoc, rel, ct);
+                }
+                break;
+            }
+
+            case RemoveRelationship rrm:
+            {
+                using var ws = MSBuildWorkspace.Create();
+                var project = await ws.OpenProjectAsync(absolute, cancellationToken: ct);
+                var doc = await FindEntityDocumentAsync(project, rrm.FromEntity, ct);
+                if (doc is null) return MutationResult.Fail($"Entity '{rrm.FromEntity}' not found.");
+
+                var tree = await doc.GetSyntaxTreeAsync(ct);
+                var root = (CompilationUnitSyntax?)await tree!.GetRootAsync(ct);
+                var classNode = root!.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                    .FirstOrDefault(c => c.Identifier.Text == rrm.FromEntity);
+                if (classNode is null) return MutationResult.Fail($"Class '{rrm.FromEntity}' not found.");
+
+                var navProp = classNode.Members.OfType<PropertyDeclarationSyntax>()
+                    .FirstOrDefault(p => p.Identifier.Text == rrm.RelationshipName);
+                if (navProp is null) return MutationResult.Fail($"Relationship '{rrm.RelationshipName}' not found.");
+
+                var newClass = classNode.RemoveNode(navProp, SyntaxRemoveOptions.KeepNoTrivia)!;
+                var newRoot = root.ReplaceNode(classNode, newClass);
+                pending[doc.FilePath!] = newRoot.ToFullString();
+                diagnostics.Add(new CatalogDiagnostic("warning",
+                    "Removed navigation property only. FK property + reverse navigation (if any) must be removed manually in v1.",
+                    doc.FilePath, null));
+                break;
+            }
+
             default:
                 return MutationResult.Fail($"Mutation '{request.GetType().Name}' is not implemented yet.");
         }
@@ -189,6 +308,127 @@ public sealed class RoslynEntityMutator
             : p.ClrType;
         var src = $"public {typeName} {p.Name} {{ get; set; }}";
         return (PropertyDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(src)!;
+    }
+
+    private static string RenderAttribute(AttributeInstance a)
+    {
+        var shortName = a.FullTypeName.Split('.').Last();
+        if (shortName.EndsWith("Attribute", StringComparison.Ordinal))
+            shortName = shortName[..^"Attribute".Length];
+        var args = new List<string>();
+        foreach (var ctor in a.ConstructorArgs)
+            args.Add(FormatLiteral(ctor));
+        foreach (var (k, v) in a.NamedArgs)
+            args.Add($"{k} = {FormatLiteral(v)}");
+        var body = args.Count == 0 ? "" : $"({string.Join(", ", args)})";
+        return $"[{shortName}{body}]";
+    }
+
+    private static string FormatLiteral(object? v) => v switch
+    {
+        null => "null",
+        string s => $"\"{s.Replace("\"", "\\\"")}\"",
+        bool b => b ? "true" : "false",
+        char c => $"'{c}'",
+        _ => v.ToString() ?? "null",
+    };
+
+    private static TNode WithoutAttribute<TNode>(TNode node, string attributeFullTypeName) where TNode : SyntaxNode
+    {
+        var shortName = attributeFullTypeName.Split('.').Last();
+        if (shortName.EndsWith("Attribute", StringComparison.Ordinal))
+            shortName = shortName[..^"Attribute".Length];
+
+        var listsToRewrite = node.DescendantNodes().OfType<AttributeListSyntax>()
+            .Where(al => al.Parent == node).ToList();
+
+        foreach (var list in listsToRewrite)
+        {
+            var keep = list.Attributes.Where(a => a.Name.ToString().Split('.').Last() != shortName
+                                               && a.Name.ToString().Split('.').Last() != shortName + "Attribute").ToList();
+            if (keep.Count == list.Attributes.Count) continue;
+
+            if (keep.Count == 0)
+            {
+                node = node.RemoveNode(list, SyntaxRemoveOptions.KeepNoTrivia)!;
+            }
+            else
+            {
+                var newList = list.WithAttributes(SyntaxFactory.SeparatedList(keep));
+                node = node.ReplaceNode(list, newList);
+            }
+        }
+        return node;
+    }
+
+    private static async Task<string> AddRelationshipToFromAsync(Document doc, AddRelationship rel, CancellationToken ct)
+    {
+        var tree = await doc.GetSyntaxTreeAsync(ct);
+        var root = (CompilationUnitSyntax?)await tree!.GetRootAsync(ct);
+        var classNode = root!.DescendantNodes().OfType<ClassDeclarationSyntax>()
+            .First(c => c.Identifier.Text == rel.FromEntity);
+
+        var navType = rel.Cardinality == RelationshipCardinality.OneToMany
+            ? $"System.Collections.Generic.ICollection<{rel.ToEntity}>"
+            : rel.ToEntity;
+        var navInit = rel.Cardinality == RelationshipCardinality.OneToMany
+            ? $" = new System.Collections.Generic.List<{rel.ToEntity}>();"
+            : "";
+        var fkLine = rel.Cardinality == RelationshipCardinality.ManyToOne
+            ? $"public int {rel.ForeignKeyProperty ?? rel.ToEntity + "Id"} {{ get; set; }}"
+            : null;
+
+        var members = new List<MemberDeclarationSyntax>();
+        if (fkLine is not null)
+            members.Add((PropertyDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(fkLine)!);
+        members.Add((PropertyDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(
+            $"public {navType} {rel.ToEntity} {{ get; set; }}{navInit}")!);
+
+        var newClass = classNode.AddMembers(members.ToArray());
+        return root.ReplaceNode(classNode, newClass).NormalizeWhitespace().ToFullString();
+    }
+
+    private static async Task<string> AddRelationshipToToAsync(Document doc, AddRelationship rel, CancellationToken ct)
+    {
+        var tree = await doc.GetSyntaxTreeAsync(ct);
+        var root = (CompilationUnitSyntax?)await tree!.GetRootAsync(ct);
+        var classNode = root!.DescendantNodes().OfType<ClassDeclarationSyntax>()
+            .First(c => c.Identifier.Text == rel.ToEntity);
+
+        var reverseType = rel.Cardinality == RelationshipCardinality.OneToMany
+            ? rel.FromEntity
+            : rel.Cardinality == RelationshipCardinality.ManyToOne
+                ? $"System.Collections.Generic.ICollection<{rel.FromEntity}>"
+                : rel.FromEntity;
+        var reverseInit = rel.Cardinality == RelationshipCardinality.ManyToOne
+            ? $" = new System.Collections.Generic.List<{rel.FromEntity}>();"
+            : "";
+
+        var member = (PropertyDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(
+            $"public {reverseType} {rel.FromEntity} {{ get; set; }}{reverseInit}")!;
+        var newClass = classNode.AddMembers(member);
+        return root.ReplaceNode(classNode, newClass).NormalizeWhitespace().ToFullString();
+    }
+
+    private static async Task<string> AddBothSidesInOneFileAsync(Document doc, AddRelationship rel, CancellationToken ct)
+    {
+        var firstPass = await AddRelationshipToFromAsync(doc, rel, ct);
+        var tree = CSharpSyntaxTree.ParseText(firstPass);
+        var root = (CompilationUnitSyntax)tree.GetRoot();
+        var toClass = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
+            .First(c => c.Identifier.Text == rel.ToEntity);
+        var reverseType = rel.Cardinality == RelationshipCardinality.OneToMany
+            ? rel.FromEntity
+            : rel.Cardinality == RelationshipCardinality.ManyToOne
+                ? $"System.Collections.Generic.ICollection<{rel.FromEntity}>"
+                : rel.FromEntity;
+        var reverseInit = rel.Cardinality == RelationshipCardinality.ManyToOne
+            ? $" = new System.Collections.Generic.List<{rel.FromEntity}>();"
+            : "";
+        var member = (PropertyDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(
+            $"public {reverseType} {rel.FromEntity} {{ get; set; }}{reverseInit}")!;
+        var newToClass = toClass.AddMembers(member);
+        return root.ReplaceNode(toClass, newToClass).NormalizeWhitespace().ToFullString();
     }
 }
 
