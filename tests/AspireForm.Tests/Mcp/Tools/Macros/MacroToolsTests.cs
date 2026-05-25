@@ -50,4 +50,31 @@ public sealed class MacroToolsTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    [Fact]
+    public void AddAuthenticationTool_metadata_requires_variant()
+    {
+        var tool = new AddAuthenticationTool(".");
+        tool.Name.Should().Be("add_authentication");
+        tool.InputSchema["required"]!.AsArray().Select(n => n!.GetValue<string>())
+            .Should().Contain("variant");
+    }
+
+    [Fact]
+    public async Task AddAuthenticationTool_unknown_variant_returns_tool_level_error()
+    {
+        var tool = new AddAuthenticationTool(".");
+        var result = await tool.ExecuteAsync(new JsonObject { ["variant"] = "saml" }, default);
+        result.IsError.Should().BeTrue();
+        result.Content[0].Text.Should().Contain("Unknown variant 'saml'");
+    }
+
+    [Fact]
+    public async Task AddAuthenticationTool_missing_variant_returns_tool_level_error()
+    {
+        var tool = new AddAuthenticationTool(".");
+        var result = await tool.ExecuteAsync(new JsonObject(), default);
+        result.IsError.Should().BeTrue();
+        result.Content[0].Text.Should().Contain("requires 'variant'");
+    }
 }
