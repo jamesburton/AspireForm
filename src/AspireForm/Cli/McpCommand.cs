@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using AspireForm.Mcp;
 using AspireForm.Mcp.Tools;
+using AspireForm.Mcp.Tools.Entity;
 using AspireForm.Mcp.Tools.Macros;
 using Spectre.Console.Cli;
 
@@ -49,7 +50,7 @@ public sealed class McpCommand : AsyncCommand<McpCommand.Settings>
         }
     }
 
-    /// <summary>Builds the registry of all 14 low-level tools and 3 macros, all bound to <paramref name="projectDir"/> as their default.</summary>
+    /// <summary>Builds the registry of all 14 low-level tools, 12 entity tools, and 3 macros, all bound to <paramref name="projectDir"/> as their default.</summary>
     public static ToolRegistry BuildRegistry(string projectDir)
     {
         var r = new ToolRegistry();
@@ -69,6 +70,20 @@ public sealed class McpCommand : AsyncCommand<McpCommand.Settings>
         r.Register(new PluginInstallTool(projectDir));
         r.Register(new PluginUpdateTool(projectDir));
         r.Register(new PluginRemoveTool(projectDir));
+
+        // EF model-builder tools (#4a) — 12 fine-grained verbs over EntityCatalog.
+        r.Register(new EntityListTool(projectDir));
+        r.Register(new EntityShowTool(projectDir));
+        r.Register(new DbContextListTool(projectDir));
+        r.Register(new EntityCreateTool(projectDir));
+        r.Register(new EntityDeleteTool(projectDir));
+        r.Register(new PropertyAddTool(projectDir));
+        r.Register(new PropertyRemoveTool(projectDir));
+        r.Register(new PropertyRenameTool(projectDir));
+        r.Register(new AttributeSetTool(projectDir));
+        r.Register(new AttributeClearTool(projectDir));
+        r.Register(new RelationshipAddTool(projectDir));
+        r.Register(new RelationshipRemoveTool(projectDir));
 
         // Macros (3).
         r.Register(new ScaffoldAspireAppWithDataTool(projectDir));

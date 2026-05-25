@@ -7,10 +7,10 @@ namespace AspireForm.Tests.Mcp;
 public sealed class McpCommandRegistrationTests
 {
     [Fact]
-    public void BuildRegistry_registers_14_low_level_tools_plus_3_macros()
+    public void BuildRegistry_registers_14_verbs_3_macros_12_entity_tools_total_29()
     {
         var r = McpCommand.BuildRegistry(".");
-        r.All.Count.Should().Be(17);
+        r.All.Count.Should().Be(29);
 
         string[] expectedLowLevel =
         [
@@ -21,17 +21,24 @@ public sealed class McpCommandRegistrationTests
             "aspireform_plugin_update", "aspireform_plugin_remove",
         ];
         foreach (var n in expectedLowLevel)
-        {
             r.Contains(n).Should().BeTrue(because: $"low-level tool '{n}' must be registered");
-        }
 
         string[] expectedMacros =
         [
             "scaffold_aspire_app_with_data", "add_cache_layer", "add_authentication",
         ];
         foreach (var n in expectedMacros)
-        {
-            r.Contains(n).Should().BeTrue(because: $"macro tool '{n}' must be registered");
-        }
+            r.Contains(n).Should().BeTrue(because: $"macro '{n}' must be registered");
+
+        string[] expectedEntityTools =
+        [
+            "aspireform_entity_list", "aspireform_entity_show", "aspireform_dbcontext_list",
+            "aspireform_entity_create", "aspireform_entity_delete",
+            "aspireform_property_add", "aspireform_property_remove", "aspireform_property_rename",
+            "aspireform_attribute_set", "aspireform_attribute_clear",
+            "aspireform_relationship_add", "aspireform_relationship_remove",
+        ];
+        foreach (var n in expectedEntityTools)
+            r.Contains(n).Should().BeTrue(because: $"entity tool '{n}' must be registered");
     }
 }

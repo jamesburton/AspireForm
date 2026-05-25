@@ -1,7 +1,7 @@
 aspireform:
   version: 1
   project: SampleApp
-  apphost: examples/sample/SampleApp.AppHost
+  apphost: ./SampleApp.AppHost
 resources:
   sql:
     type: sqlserver

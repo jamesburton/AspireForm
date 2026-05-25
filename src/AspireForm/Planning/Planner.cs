@@ -46,7 +46,9 @@ public sealed class Planner
             var ctx = new PlanContext(
                 BlockName: name,
                 Inputs: inputs,
-                AppHostDirectory: model.AspireForm.AppHost,
+                AppHostDirectory: Path.IsPathRooted(model.AspireForm.AppHost)
+                    ? model.AspireForm.AppHost
+                    : Path.GetFullPath(Path.Combine(projectDir, model.AspireForm.AppHost)),
                 ProjectName: model.AspireForm.Project);
 
             var providerPlan = provider.Plan(ctx);

@@ -33,7 +33,7 @@ public sealed class EndToEndTests
         initResp!["result"]!["serverInfo"]!["name"]!.GetValue<string>().Should().Be("AspireForm");
 
         var listResp = JsonNode.Parse(lines[1]) as JsonObject;
-        listResp!["result"]!["tools"]!.AsArray().Count.Should().Be(17);
+        listResp!["result"]!["tools"]!.AsArray().Count.Should().Be(29);
 
         var callResp = JsonNode.Parse(lines[2]) as JsonObject;
         callResp!["result"]!["content"]![0]!["text"]!.GetValue<string>().Should().NotBeNullOrWhiteSpace();

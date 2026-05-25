@@ -60,7 +60,9 @@ public sealed class ImportCommand : AsyncCommand<ImportCommand.Settings>
             var ctx = new PlanContext(
                 BlockName: settings.BlockName,
                 Inputs: inputs,
-                AppHostDirectory: loaded.Model.AspireForm.AppHost,
+                AppHostDirectory: Path.IsPathRooted(loaded.Model.AspireForm.AppHost)
+                    ? loaded.Model.AspireForm.AppHost
+                    : Path.GetFullPath(Path.Combine(projectDir, loaded.Model.AspireForm.AppHost)),
                 ProjectName: loaded.Model.AspireForm.Project);
             var providerPlan = provider.Plan(ctx);
 
