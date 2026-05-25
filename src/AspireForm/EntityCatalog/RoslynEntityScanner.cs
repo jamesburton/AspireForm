@@ -186,6 +186,27 @@ public sealed class RoslynEntityScanner : IAsyncDisposable
             }
         }
 
+        // OneToOne: when this entity has a scalar nav to T AND T has a scalar (non-collection) back-ref to us, reclassify.
+        var selfName = symbol.Name;
+        for (int i = 0; i < relationships.Count; i++)
+        {
+            var rel = relationships[i];
+            if (rel.Cardinality != RelationshipCardinality.ManyToOne) continue;
+
+            var targetSymbol = allEntities.FirstOrDefault(e => e.Name == rel.TargetEntity);
+            if (targetSymbol is null) continue;
+
+            var hasBackRef = targetSymbol.GetMembers().OfType<IPropertySymbol>()
+                .Any(p => p.DeclaredAccessibility == Accessibility.Public
+                       && p.Type is INamedTypeSymbol nt
+                       && nt.Name == selfName
+                       && !(nt.IsGenericType && (nt.Name is "ICollection" or "IList" or "List" or "IReadOnlyCollection" or "IReadOnlyList" or "IEnumerable" or "HashSet")));
+            if (hasBackRef)
+            {
+                relationships[i] = rel with { Cardinality = RelationshipCardinality.OneToOne };
+            }
+        }
+
         return new Entity(
             Name: symbol.Name,
             Namespace: symbol.ContainingNamespace?.ToDisplayString() ?? "",
