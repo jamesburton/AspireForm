@@ -43,12 +43,21 @@ jobs:
         # normalises 0.1 -> 0.1.0, so v0.1 / v0.1.0 produce the same package.
         run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Pack
+      - name: Pack AspireForm
         run: >
           dotnet pack src/AspireForm/AspireForm.csproj
           --configuration Release --no-build
           --output ./artifacts
           /p:Version=${{ steps.version.outputs.value }}
+
+      - name: Pack AspireForm.Annotations
+        # The sibling Annotations package is versioned independently and is shipped
+        # alongside the AspireForm tool when a 'v*' tag is pushed. Its version comes
+        # from the csproj (not derived from the tag).
+        run: >
+          dotnet pack src/AspireForm.Annotations/AspireForm.Annotations.csproj
+          --configuration Release --no-build
+          --output ./artifacts
 
       - name: Publish to NuGet
         env:
