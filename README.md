@@ -76,6 +76,44 @@ Add to `~/.claude/mcp.json` (or the project-scoped equivalent):
 
 > **Security:** the HTTP transport binds localhost only and has no authentication in this version. Do not expose it on a public interface.
 
+## Use the entity builder
+
+`aspireform ui` opens a local Blazor Server app where you author your EF Core entity classes — properties, relationships, attributes — and see DAB exposure toggled live. The same operations are available as MCP tools so agents can drive the model alongside humans.
+
+```bash
+aspireform ui                       # default port 5050, opens browser
+aspireform ui --port 5051           # explicit port
+aspireform ui --no-launch           # skip the browser auto-launch
+aspireform ui --project-dir ./myapp # set the AspireForm project root
+```
+
+### Code-first authoring
+
+Reference the `AspireForm.Annotations` package from your entity project, then decorate entities:
+
+```csharp
+using AspireForm.Annotations;
+
+[DabExpose]
+[DabPermission("anonymous", "read")]
+public class Book
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = "";
+}
+```
+
+When the `ef-data` block in your `aspireform.yaml` points at this project (`inputs.projectPath`), `aspireform plan` emits both:
+
+- a generated `DbContext` with `DbSet<Book>`, and
+- a `dab-config.json` exposing `Book` via REST/GraphQL with the declared permissions.
+
+### Entity-level MCP tools
+
+12 new MCP tools (registered alongside the existing 17) cover full CRUD: `aspireform_entity_{list,show,create,delete}`, `aspireform_property_{add,remove,rename}`, `aspireform_attribute_{set,clear}`, `aspireform_relationship_{add,remove}`, `aspireform_dbcontext_list`.
+
+> **Security:** the UI binds localhost only and has no authentication. Dev-tool use only.
+
 ## Configuration
 
 A minimal `aspireform.yaml`:

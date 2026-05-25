@@ -4,6 +4,41 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-05-25
+
+### Added
+- New `aspireform ui` verb — Kestrel + Blazor Server EF model builder. Localhost-only.
+- 12 new MCP entity tools: `aspireform_entity_{list,show,create,delete}`, `aspireform_property_{add,remove,rename}`, `aspireform_attribute_{set,clear}`, `aspireform_relationship_{add,remove}`, `aspireform_dbcontext_list`. Registry grows from 17 to 29 tools.
+- `EntityCatalog` namespace with Roslyn-backed scanner and mutator (`MSBuildWorkspace`, semantic-safe rename, transactional file writes).
+- New sibling package `AspireForm.Annotations 0.1.0` with `[DabExpose]`, `[DabPath]`, `[DabPermission]`, `[DabRestOnly]`, `[DabGraphqlOnly]`, `[DabHidden]`, `[OnDelete]` attributes for code-first entity authoring.
+
+### Changed
+- Built-in `ef-data` module provider rewritten to use the entity catalog. The provider now emits a real `DbContext` (DbSet per entity) and — when any entity carries `[DabExpose]` — a sibling `dab-config.json`.
+- `<FrameworkReference Include="Microsoft.AspNetCore.App" />` added to the AspireForm tool package; `<RollForward>LatestMajor</RollForward>` set for shared-framework compatibility.
+
+### Breaking
+- `ef-data` block inputs changed: removed `database` + `contextName`; added `projectPath` (required), `dbContext` (optional), `emitDabConfig` (optional), `dabConfigPath` (optional). Migration:
+  - Before (0.4.0):
+    ```yaml
+    modules:
+      data:
+        type: ef-data
+        dependsOn: [sql]
+        inputs:
+          database: appdb
+          contextName: AppDbContext
+    ```
+  - After (0.5.0):
+    ```yaml
+    modules:
+      data:
+        type: ef-data
+        dependsOn: [sql]
+        inputs:
+          projectPath: ./Demo.Data/Demo.Data.csproj
+    ```
+  When upgrading, AspireForm throws a clear `InvalidOperationException` from `ef-data plan` that points back to this entry.
+
 ## [0.4.0] - 2026-05-25
 
 ### Added
