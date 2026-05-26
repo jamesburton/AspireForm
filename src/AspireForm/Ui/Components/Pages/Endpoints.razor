@@ -1,0 +1,116 @@
+@page "/endpoints"
+@inject IEndpointCatalogService EndpointCatalog
+@inject UiOptions Options
+
+<PageTitle>Endpoints — AspireForm</PageTitle>
+
+<div class="two-pane">
+    <aside class="sidebar">
+        <div class="sidebar-actions">
+            <input type="text" placeholder="Search endpoints..." @bind="Filter" @bind:event="oninput" style="width:100%" />
+        </div>
+        <div class="sidebar-actions">
+            <button @onclick="() => ShowNewEndpoint = true" style="width:100%">+ New Endpoint</button>
+        </div>
+        <div class="sidebar-list">
+            @foreach (var ep in FilteredEndpoints.OrderBy(e => e.Route, StringComparer.Ordinal))
+            {
+                <div class="sidebar-item @(Selected?.MethodName == ep.MethodName && Selected?.HandlerTypeName == ep.HandlerTypeName ? "active" : "")" @onclick="() => Select(ep)">
+                    <span class="muted" style="font-size:.75em;margin-right:.3rem">@ep.HttpMethod</span>@ep.Route
+                </div>
+            }
+            @if (FilteredEndpoints.Count == 0)
+            {
+                <div class="sidebar-item muted">No endpoints</div>
+            }
+        </div>
+    </aside>
+    <section class="detail">
+        @if (LoadError is not null)
+        {
+            <div class="banner">@LoadError</div>
+        }
+        @if (Selected is null)
+        {
+            <div class="detail-body muted">Select an endpoint from the sidebar.</div>
+        }
+        else
+        {
+            <EndpointHeader Endpoint="@Selected" />
+            <div class="detail-tabs">
+                <div class="detail-tab @(ActiveTab == Tab.Parameters ? "active" : "")" @onclick="() => ActiveTab = Tab.Parameters">Parameters (@Selected.Parameters.Count)</div>
+                <div class="detail-tab @(ActiveTab == Tab.Auth ? "active" : "")" @onclick="() => ActiveTab = Tab.Auth">Auth</div>
+                <div class="detail-tab @(ActiveTab == Tab.Attributes ? "active" : "")" @onclick="() => ActiveTab = Tab.Attributes">Attributes (@Selected.Attributes.Count)</div>
+            </div>
+            <div class="detail-body">
+                @switch (ActiveTab)
+                {
+                    case Tab.Parameters:
+                        <EndpointParametersTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
+                        break;
+                    case Tab.Auth:
+                        <EndpointAuthTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
+                        break;
+                    case Tab.Attributes:
+                        <EndpointAttributesTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
+                        break;
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@if (ShowNewEndpoint)
+{
+    <NewEndpointDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEndpointDir" OnClose="() => { ShowNewEndpoint = false; }" OnCreated="ReloadAsync" />
+}
+
+@code {
+    private enum Tab { Parameters, Auth, Attributes }
+
+    private string Filter { get; set; } = "";
+    private Tab ActiveTab { get; set; } = Tab.Parameters;
+    private EndpointInfo? Selected { get; set; }
+    private EndpointCatalog? CatalogSnapshot { get; set; }
+    private string? CsprojPath { get; set; }
+    private string DefaultEndpointDir => CsprojPath is null ? Options.ProjectDir : Path.GetDirectoryName(CsprojPath)!;
+    private string? LoadError { get; set; }
+    private bool ShowNewEndpoint { get; set; }
+
+    private IReadOnlyList<EndpointInfo> FilteredEndpoints =>
+        CatalogSnapshot is null ? []
+        : string.IsNullOrEmpty(Filter)
+            ? CatalogSnapshot.Endpoints
+            : CatalogSnapshot.Endpoints.Where(e =>
+                e.Route.Contains(Filter, StringComparison.OrdinalIgnoreCase)
+                || e.MethodName.Contains(Filter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            CsprojPath ??= Directory.EnumerateFiles(Options.ProjectDir, "*.csproj", SearchOption.AllDirectories).FirstOrDefault();
+            if (CsprojPath is null)
+            {
+                LoadError = $"No .csproj found under '{Options.ProjectDir}'.";
+                return;
+            }
+            CatalogSnapshot = await EndpointCatalog.ScanAsync(CsprojPath, default);
+            LoadError = null;
+            // Re-pick selected endpoint after reload.
+            if (Selected is not null)
+            {
+                Selected = CatalogSnapshot.Endpoints.FirstOrDefault(e =>
+                    e.MethodName == Selected.MethodName && e.HandlerTypeName == Selected.HandlerTypeName);
+            }
+        }
+        catch (Exception ex)
+        {
+            LoadError = $"Scan failed: {ex.Message}";
+        }
+    }
+
+    private void Select(EndpointInfo ep) => Selected = ep;
+}

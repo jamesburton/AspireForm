@@ -1,0 +1,17 @@
+@if (Endpoint is not null)
+{
+    <div class="detail-header">
+        <div style="display:flex;align-items:baseline;gap:.5rem">
+            <span class="muted" style="font-size:.85em;font-weight:600;text-transform:uppercase">@Endpoint.HttpMethod</span>
+            <h3 style="margin:0">@Endpoint.Route</h3>
+        </div>
+        <div class="muted" style="font-size:.85em;margin-top:.2rem">
+            @Endpoint.HandlerTypeName.@Endpoint.MethodName · @System.IO.Path.GetFileName(Endpoint.FilePath)
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>The currently selected endpoint.</summary>
+    [Parameter] public EndpointInfo? Endpoint { get; set; }
+}

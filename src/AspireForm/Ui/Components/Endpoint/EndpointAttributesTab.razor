@@ -1,0 +1,54 @@
+@if (Endpoint is null || ProjectPath is null) { return; }
+
+<table class="entities">
+    <thead><tr><th>Attribute</th><th>Args</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var a in Endpoint.Attributes)
+        {
+            <tr>
+                <td><code>@a.FullTypeName</code></td>
+                <td><code>@FormatArgs(a)</code></td>
+                <td><button class="danger" @onclick="() => ClearAsync(a.FullTypeName)">Clear</button></td>
+            </tr>
+        }
+        @if (Endpoint.Attributes.Count == 0)
+        {
+            <tr><td colspan="3" class="muted">No method-level attributes.</td></tr>
+        }
+    </tbody>
+</table>
+
+@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+
+@code {
+    /// <summary>The currently selected endpoint.</summary>
+    [Parameter] public EndpointInfo? Endpoint { get; set; }
+
+    /// <summary>The endpoint catalog service used to dispatch mutations.</summary>
+    [Parameter] public IEndpointCatalogService? Service { get; set; }
+
+    /// <summary>Absolute path to the Web project .csproj file.</summary>
+    [Parameter] public string? ProjectPath { get; set; }
+
+    /// <summary>Raised after a successful mutation so the parent page can re-scan.</summary>
+    [Parameter] public EventCallback OnMutated { get; set; }
+
+    private string? LastError { get; set; }
+
+    private static string FormatArgs(AttributeInstance a)
+    {
+        var parts = new List<string>();
+        foreach (var c in a.ConstructorArgs) parts.Add(c?.ToString() ?? "null");
+        foreach (var n in a.NamedArgs) parts.Add($"{n.Key}={n.Value}");
+        return parts.Count == 0 ? "" : string.Join(", ", parts);
+    }
+
+    private async Task ClearAsync(string fullTypeName)
+    {
+        LastError = null;
+        if (Service is null || ProjectPath is null) return;
+        var r = await Service.MutateAsync(ProjectPath!, new ClearEndpointAttribute(Endpoint!.MethodName, Endpoint.HandlerTypeName, fullTypeName), default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Clear failed."; return; }
+        await OnMutated.InvokeAsync();
+    }
+}

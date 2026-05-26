@@ -1,0 +1,68 @@
+@inject IEndpointCatalogService EndpointCatalog
+
+<div style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10">
+    <div style="background:#fff;padding:1rem 1.25rem;border-radius:6px;min-width:420px">
+        <h3 style="margin-top:0">New Endpoint</h3>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+            <label>Route <input type="text" @bind="Route" placeholder="/resource/{id}" style="width:100%" /></label>
+            <label>
+                HTTP Method
+                <select @bind="HttpMethod" style="margin-left:.5rem">
+                    <option>GET</option>
+                    <option>POST</option>
+                    <option>PUT</option>
+                    <option>PATCH</option>
+                    <option>DELETE</option>
+                </select>
+            </label>
+            <label>Handler type <input type="text" @bind="TypeName" placeholder="e.g. BooksHandler" /></label>
+            <label>Method name <input type="text" @bind="MethodName" placeholder="e.g. GetBooks" /></label>
+            <label>Namespace <input type="text" @bind="Namespace" placeholder="Demo.Handlers" /></label>
+            <label>File path <input type="text" @bind="FilePath" placeholder="@DefaultDir/Endpoints/Handler.cs" style="width:100%" /></label>
+        </div>
+        @if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.8rem">
+            <button @onclick="OnClose">Cancel</button>
+            <button @onclick="CreateAsync">Create</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>Absolute path to the Web project .csproj file.</summary>
+    [Parameter] public string? CsprojPath { get; set; }
+
+    /// <summary>Default directory used to resolve relative file paths.</summary>
+    [Parameter] public string DefaultDir { get; set; } = "";
+
+    /// <summary>Raised when the dialog should be closed without creating.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>Raised after a new endpoint is successfully created.</summary>
+    [Parameter] public EventCallback OnCreated { get; set; }
+
+    private string Route { get; set; } = "";
+    private string HttpMethod { get; set; } = "GET";
+    private string TypeName { get; set; } = "";
+    private string MethodName { get; set; } = "";
+    private string Namespace { get; set; } = "";
+    private string FilePath { get; set; } = "";
+    private string? LastError { get; set; }
+
+    private async Task CreateAsync()
+    {
+        LastError = null;
+        if (string.IsNullOrWhiteSpace(Route) || string.IsNullOrWhiteSpace(TypeName)
+            || string.IsNullOrWhiteSpace(MethodName) || string.IsNullOrWhiteSpace(Namespace))
+        {
+            LastError = "Route, handler type, method name, and namespace are required.";
+            return;
+        }
+        var absPath = string.IsNullOrWhiteSpace(FilePath)
+            ? Path.Combine(DefaultDir, "Endpoints", $"{TypeName}.cs")
+            : (Path.IsPathRooted(FilePath) ? FilePath : Path.Combine(DefaultDir, FilePath));
+        var r = await EndpointCatalog.MutateAsync(CsprojPath!, new CreateEndpoint(MethodName, TypeName, Route, HttpMethod, absPath, Namespace), default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Create failed."; return; }
+        await OnCreated.InvokeAsync();
+    }
+}

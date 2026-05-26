@@ -1,0 +1,51 @@
+@if (Endpoint is null || ProjectPath is null) { return; }
+
+<div style="display:flex;flex-direction:column;gap:.6rem;max-width:400px">
+    <div>
+        <strong>Current policy:</strong>
+        @if (string.IsNullOrEmpty(Endpoint.AuthPolicy))
+        {
+            <span class="muted"> (none)</span>
+        }
+        else
+        {
+            <code style="margin-left:.4rem">@Endpoint.AuthPolicy</code>
+        }
+    </div>
+    <label>
+        Set policy
+        <div style="display:flex;gap:.5rem;margin-top:.25rem">
+            <input type="text" @bind="NewPolicy" placeholder="e.g. admin, anonymous" style="flex:1" />
+            <button @onclick="SetPolicyAsync">Apply</button>
+        </div>
+    </label>
+</div>
+
+@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+
+@code {
+    /// <summary>The currently selected endpoint.</summary>
+    [Parameter] public EndpointInfo? Endpoint { get; set; }
+
+    /// <summary>The endpoint catalog service used to dispatch mutations.</summary>
+    [Parameter] public IEndpointCatalogService? Service { get; set; }
+
+    /// <summary>Absolute path to the Web project .csproj file.</summary>
+    [Parameter] public string? ProjectPath { get; set; }
+
+    /// <summary>Raised after a successful mutation so the parent page can re-scan.</summary>
+    [Parameter] public EventCallback OnMutated { get; set; }
+
+    private string NewPolicy { get; set; } = "";
+    private string? LastError { get; set; }
+
+    private async Task SetPolicyAsync()
+    {
+        LastError = null;
+        if (string.IsNullOrWhiteSpace(NewPolicy)) { LastError = "Policy is required."; return; }
+        if (Service is null || ProjectPath is null) return;
+        var r = await Service.MutateAsync(ProjectPath!, new SetAuthPolicy(Endpoint!.MethodName, Endpoint.HandlerTypeName, NewPolicy), default);
+        if (!r.Success) { LastError = r.Diagnostics.FirstOrDefault()?.Message ?? "Set policy failed."; return; }
+        await OnMutated.InvokeAsync();
+    }
+}
