@@ -1,4 +1,5 @@
 @page "/diagnostics"
+@rendermode InteractiveServer
 @inject IEntityCatalogService Catalog
 @inject UiOptions Options
 
@@ -6,16 +7,27 @@
 
 <div style="padding: 1rem">
     <h2>Diagnostics</h2>
-    @if (Snapshot is null)
+    @if (LoadingState == State.NotStarted)
     {
-        <p class="muted">Loading...</p>
+        <p class="muted">No project scanned yet. <button @onclick="ScanAsync">Run scan</button></p>
     }
-    else if (Snapshot.Diagnostics.Count == 0)
+    else if (LoadingState == State.Loading)
+    {
+        <p class="muted">Scanning workspace... (first scan can take several seconds)</p>
+    }
+    else if (LoadError is not null)
+    {
+        <div class="banner">@LoadError</div>
+    }
+    else if (Snapshot is null || Snapshot.Diagnostics.Count == 0)
     {
         <p>No diagnostics — workspace loaded clean.</p>
+        <p class="muted">Last scan: @LastScanAt</p>
+        <p><button @onclick="ScanAsync">Re-scan</button></p>
     }
     else
     {
+        <p class="muted">Last scan: @LastScanAt &nbsp;<button @onclick="ScanAsync">Re-scan</button></p>
         <table class="entities">
             <thead><tr><th>Severity</th><th>Message</th><th>File</th><th>Line</th></tr></thead>
             <tbody>
@@ -29,12 +41,50 @@
 </div>
 
 @code {
+    private enum State { NotStarted, Loading, Loaded, Errored }
+    private State LoadingState { get; set; }
     private EntityCatalog? Snapshot { get; set; }
+    private string? LoadError { get; set; }
+    private string? LastScanAt { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
+    {
+        // On page load, render the shell immediately. If a prior page already scanned, show its
+        // cached snapshot without re-scanning. Otherwise wait for the user to click "Run scan".
+        var csproj = Directory.EnumerateFiles(Options.ProjectDir, "*.csproj", SearchOption.AllDirectories).FirstOrDefault();
+        if (csproj is null) { LoadError = $"No .csproj found under '{Options.ProjectDir}'."; LoadingState = State.Errored; return; }
+
+        if (Catalog is RoslynEntityCatalogService rs)
+        {
+            var cached = rs.GetLastSnapshot(csproj);
+            if (cached is not null)
+            {
+                Snapshot = cached;
+                LastScanAt = DateTime.Now.ToString("HH:mm:ss") + " (from cache)";
+                LoadingState = State.Loaded;
+                return;
+            }
+        }
+        LoadingState = State.NotStarted;
+    }
+
+    private async Task ScanAsync()
     {
         var csproj = Directory.EnumerateFiles(Options.ProjectDir, "*.csproj", SearchOption.AllDirectories).FirstOrDefault();
-        if (csproj is null) return;
-        try { Snapshot = await Catalog.ScanAsync(csproj, default); } catch { /* surfaced on /entities */ }
+        if (csproj is null) { LoadError = $"No .csproj found under '{Options.ProjectDir}'."; LoadingState = State.Errored; return; }
+
+        LoadingState = State.Loading;
+        StateHasChanged();
+        try
+        {
+            Snapshot = await Catalog.ScanAsync(csproj, default);
+            LastScanAt = DateTime.Now.ToString("HH:mm:ss");
+            LoadingState = State.Loaded;
+        }
+        catch (Exception ex)
+        {
+            LoadError = $"Scan failed: {ex.Message}";
+            LoadingState = State.Errored;
+        }
     }
 }
