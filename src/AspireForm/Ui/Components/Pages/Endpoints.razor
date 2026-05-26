@@ -11,7 +11,7 @@
             <input type="text" placeholder="Search endpoints..." @bind="Filter" @bind:event="oninput" style="width:100%" />
         </div>
         <div class="sidebar-actions">
-            <button @onclick="() => ShowNewEndpoint = true" style="width:100%">+ New Endpoint</button>
+            <button @onclick="OpenNewEndpoint" style="width:100%">+ New Endpoint</button>
         </div>
         <div class="sidebar-list">
             @foreach (var ep in FilteredEndpoints.OrderBy(e => e.Route, StringComparer.Ordinal))
@@ -63,7 +63,7 @@
 
 @if (ShowNewEndpoint)
 {
-    <NewEndpointDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEndpointDir" OnClose="() => { ShowNewEndpoint = false; }" OnCreated="ReloadAsync" />
+    <NewEndpointDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEndpointDir" OnClose="CloseNewEndpoint" OnCreated="OnEndpointCreatedAsync" />
 }
 
 @code {
@@ -114,4 +114,8 @@
     }
 
     private void Select(EndpointInfo ep) => Selected = ep;
+
+    private void OpenNewEndpoint() => ShowNewEndpoint = true;
+    private void CloseNewEndpoint() => ShowNewEndpoint = false;
+    private async Task OnEndpointCreatedAsync() { ShowNewEndpoint = false; await ReloadAsync(); }
 }

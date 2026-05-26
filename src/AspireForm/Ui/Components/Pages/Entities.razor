@@ -11,7 +11,7 @@
             <input type="text" placeholder="Search entities..." @bind="Filter" @bind:event="oninput" style="width:100%" />
         </div>
         <div class="sidebar-actions">
-            <button @onclick="() => ShowNewEntity = true" style="width:100%">+ New Entity</button>
+            <button @onclick="OpenNewEntity" style="width:100%">+ New Entity</button>
         </div>
         <div class="sidebar-list">
             @foreach (var e in FilteredEntities.OrderBy(e => e.Name, StringComparer.Ordinal))
@@ -65,7 +65,7 @@
 
 @if (ShowNewEntity)
 {
-    <NewEntityDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEntityDir" OnClose="() => { ShowNewEntity = false; }" OnCreated="ReloadAsync" />
+    <NewEntityDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEntityDir" OnClose="CloseNewEntity" OnCreated="OnEntityCreatedAsync" />
 }
 
 @code {
@@ -113,4 +113,8 @@
     }
 
     private void Select(Entity e) => Selected = e;
+
+    private void OpenNewEntity() => ShowNewEntity = true;
+    private void CloseNewEntity() => ShowNewEntity = false;
+    private async Task OnEntityCreatedAsync() { ShowNewEntity = false; await ReloadAsync(); }
 }
