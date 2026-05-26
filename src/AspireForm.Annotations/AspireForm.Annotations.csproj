@@ -7,9 +7,9 @@
     <RootNamespace>AspireForm.Annotations</RootNamespace>
     <AssemblyName>AspireForm.Annotations</AssemblyName>
     <PackageId>AspireForm.Annotations</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>James Burton</Authors>
-    <Description>Attribute-only library for AspireForm code-first entity authoring (DAB exposure attributes + optional EF helpers).</Description>
+    <Description>Attribute-only library for AspireForm code-first entity and API endpoint authoring (DAB exposure attributes, EF helpers, and Minimal API endpoint attributes).</Description>
     <PackageProjectUrl>https://github.com/jamesburton/AspireForm</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jamesburton/AspireForm</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
