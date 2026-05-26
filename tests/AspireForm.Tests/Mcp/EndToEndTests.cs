@@ -33,7 +33,7 @@ public sealed class EndToEndTests
         initResp!["result"]!["serverInfo"]!["name"]!.GetValue<string>().Should().Be("AspireForm");
 
         var listResp = JsonNode.Parse(lines[1]) as JsonObject;
-        listResp!["result"]!["tools"]!.AsArray().Count.Should().Be(30); // 14 + 12 entity + 3 macros + 1 theme
+        listResp!["result"]!["tools"]!.AsArray().Count.Should().Be(40); // 14 + 12 entity + 3 macros + 10 endpoint + 1 theme
 
         var callResp = JsonNode.Parse(lines[2]) as JsonObject;
         callResp!["result"]!["content"]![0]!["text"]!.GetValue<string>().Should().NotBeNullOrWhiteSpace();

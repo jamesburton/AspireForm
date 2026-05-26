@@ -7,10 +7,10 @@ namespace AspireForm.Tests.Mcp;
 public sealed class McpCommandRegistrationTests
 {
     [Fact]
-    public void BuildRegistry_registers_14_verbs_3_macros_12_entity_tools_total_29()
+    public void BuildRegistry_registers_14_verbs_3_macros_12_entity_tools_10_endpoint_tools_1_theme_tool_total_40()
     {
         var r = McpCommand.BuildRegistry(".");
-        r.All.Count.Should().Be(30); // 14 low-level + 12 entity + 3 macros + 1 theme = 30
+        r.All.Count.Should().Be(40); // 14 low-level + 12 entity + 3 macros + 10 endpoint + 1 theme = 40
 
         string[] expectedLowLevel =
         [
@@ -40,5 +40,18 @@ public sealed class McpCommandRegistrationTests
         ];
         foreach (var n in expectedEntityTools)
             r.Contains(n).Should().BeTrue(because: $"entity tool '{n}' must be registered");
+
+        string[] expectedEndpointTools =
+        [
+            "aspireform_endpoint_list", "aspireform_endpoint_show", "aspireform_endpoint_emit",
+            "aspireform_endpoint_create", "aspireform_endpoint_delete",
+            "aspireform_endpoint_parameter_add", "aspireform_endpoint_parameter_remove",
+            "aspireform_endpoint_auth_set",
+            "aspireform_endpoint_attribute_set", "aspireform_endpoint_attribute_clear",
+        ];
+        foreach (var n in expectedEndpointTools)
+            r.Contains(n).Should().BeTrue(because: $"endpoint tool '{n}' must be registered");
+
+        r.Contains("aspireform_theme_show").Should().BeTrue(because: "theme tool must be registered");
     }
 }

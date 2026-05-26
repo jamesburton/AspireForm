@@ -1,3 +1,4 @@
+using AspireForm.ApiCatalog;
 using AspireForm.EntityCatalog;
 using AspireForm.Ui.Components;
 using AspireForm.Ui.Theme;
@@ -19,6 +20,7 @@ internal static class UiHost
         builder.WebHost.UseKestrel(k => k.ListenLocalhost(opts.Port));
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.AddSingleton<IEntityCatalogService>(_ => new RoslynEntityCatalogService());
+        builder.Services.AddSingleton<IEndpointCatalogService>(_ => new RoslynEndpointCatalogService());
         builder.Services.AddSingleton(opts);
         builder.Services.AddSingleton<IThemeStore>(_ => new ThemeStore(opts.ProjectDir));
         builder.Logging.ClearProviders(); // keep stdout clean for dnx users

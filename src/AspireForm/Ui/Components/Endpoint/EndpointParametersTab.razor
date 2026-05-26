@@ -1,0 +1,41 @@
+@if (Endpoint is null || ProjectPath is null) { return; }
+
+<h4 style="margin-bottom:.4rem">Route parameters</h4>
+@if (Endpoint.Parameters.Count > 0)
+{
+    <table class="entities">
+        <thead><tr><th>Name</th><th>Constraint</th><th>Optional?</th></tr></thead>
+        <tbody>
+            @foreach (var p in Endpoint.Parameters)
+            {
+                <tr>
+                    <td><code>@p.Name</code></td>
+                    <td><code>@(p.Constraint ?? "—")</code></td>
+                    <td>@(p.IsOptional ? "yes" : "no")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="muted">No route parameters.</p>
+}
+
+@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+
+@code {
+    /// <summary>The currently selected endpoint.</summary>
+    [Parameter] public EndpointInfo? Endpoint { get; set; }
+
+    /// <summary>The endpoint catalog service used to dispatch mutations.</summary>
+    [Parameter] public IEndpointCatalogService? Service { get; set; }
+
+    /// <summary>Absolute path to the Web project .csproj file.</summary>
+    [Parameter] public string? ProjectPath { get; set; }
+
+    /// <summary>Raised after a successful mutation so the parent page can re-scan.</summary>
+    [Parameter] public EventCallback OnMutated { get; set; }
+
+    private string? LastError { get; set; }
+}

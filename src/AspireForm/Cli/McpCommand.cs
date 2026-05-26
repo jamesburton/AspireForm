@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using AspireForm.Mcp;
 using AspireForm.Mcp.Tools;
+using AspireForm.Mcp.Tools.Endpoint;
 using AspireForm.Mcp.Tools.Entity;
 using AspireForm.Mcp.Tools.Macros;
 using Spectre.Console.Cli;
@@ -50,7 +51,7 @@ public sealed class McpCommand : AsyncCommand<McpCommand.Settings>
         }
     }
 
-    /// <summary>Builds the registry of all 14 low-level tools, 12 entity tools, and 3 macros, all bound to <paramref name="projectDir"/> as their default.</summary>
+    /// <summary>Builds the registry of all 14 low-level tools, 12 entity tools, 10 endpoint tools, and 3 macros (39 total), all bound to <paramref name="projectDir"/> as their default.</summary>
     public static ToolRegistry BuildRegistry(string projectDir)
     {
         var r = new ToolRegistry();
@@ -84,6 +85,18 @@ public sealed class McpCommand : AsyncCommand<McpCommand.Settings>
         r.Register(new AttributeClearTool(projectDir));
         r.Register(new RelationshipAddTool(projectDir));
         r.Register(new RelationshipRemoveTool(projectDir));
+
+        // API endpoint builder tools (#4b) — 10 fine-grained verbs over ApiCatalog.
+        r.Register(new EndpointListTool(projectDir));
+        r.Register(new EndpointShowTool(projectDir));
+        r.Register(new EndpointCreateTool(projectDir));
+        r.Register(new EndpointDeleteTool(projectDir));
+        r.Register(new EndpointParameterAddTool(projectDir));
+        r.Register(new EndpointParameterRemoveTool(projectDir));
+        r.Register(new EndpointAuthSetTool(projectDir));
+        r.Register(new EndpointAttributeSetTool(projectDir));
+        r.Register(new EndpointAttributeClearTool(projectDir));
+        r.Register(new EndpointEmitTool(projectDir));
 
         // Macros (3).
         r.Register(new ScaffoldAspireAppWithDataTool(projectDir));
