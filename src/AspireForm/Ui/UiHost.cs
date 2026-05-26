@@ -19,10 +19,11 @@ internal static class UiHost
         // Force ApplicationName to this assembly so MapStaticAssets() locates
         // AspireForm.staticwebassets.endpoints.json regardless of which host process
         // (production exe, or AspireForm.Tests when running smoke tests) is running.
+        // ContentRootPath is intentionally left at default — overriding it broke the
+        // file-resolution step inside MapStaticAssets so every asset returned 0 bytes.
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             ApplicationName = typeof(UiHost).Assembly.GetName().Name,
-            ContentRootPath = Path.GetDirectoryName(typeof(UiHost).Assembly.Location),
         });
         builder.WebHost.UseKestrel(k => k.ListenLocalhost(opts.Port));
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
