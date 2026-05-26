@@ -1,0 +1,26 @@
+@page "/theme"
+
+<PageTitle>Theme — AspireForm</PageTitle>
+
+<div style="padding: 1rem">
+    <h2>Theme Editor</h2>
+    <p class="muted">Adjust the color tokens used by the AspireForm UI. Changes are saved to
+    <span class="kbd">.aspireform/theme.json</span> and take effect immediately.</p>
+
+    <ThemeTokenEditor />
+
+    <p style="margin-top: 1.5rem;">
+        <button @onclick="ResetAll">Reset all to defaults</button>
+    </p>
+</div>
+
+@code {
+    [Inject] private IThemeStore ThemeStore { get; set; } = default!;
+    [Inject] private Microsoft.JSInterop.IJSRuntime JS { get; set; } = default!;
+
+    private async Task ResetAll()
+    {
+        await ThemeStore.ResetToDefaultsAsync();
+        await JS.InvokeVoidAsync("afTheme.reload");
+    }
+}
