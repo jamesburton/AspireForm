@@ -1,27 +1,33 @@
 @if (Endpoint is null || ProjectPath is null) { return; }
 
-<div style="display:flex;flex-direction:column;gap:.6rem;max-width:400px">
-    <div>
-        <strong>Current policy:</strong>
+<div class="space-y-4 max-w-sm">
+    <div class="flex items-center gap-2 text-sm">
+        <span class="text-muted-foreground">Current policy:</span>
         @if (string.IsNullOrEmpty(Endpoint.AuthPolicy))
         {
-            <span class="muted"> (none)</span>
+            <span class="text-muted-foreground italic">(none)</span>
         }
         else
         {
-            <code style="margin-left:.4rem">@Endpoint.AuthPolicy</code>
+            <code class="font-mono bg-muted px-2 py-0.5 rounded text-sm">@Endpoint.AuthPolicy</code>
         }
     </div>
-    <label>
-        Set policy
-        <div style="display:flex;gap:.5rem;margin-top:.25rem">
-            <input type="text" @bind="NewPolicy" placeholder="e.g. admin, anonymous" style="flex:1" />
-            <button @onclick="SetPolicyAsync">Apply</button>
-        </div>
-    </label>
-</div>
 
-@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+    <div class="grid gap-1.5">
+        <label class="text-sm font-medium" for="ep-auth-policy">Set policy</label>
+        <div class="flex gap-2">
+            <BbInput Id="ep-auth-policy" Placeholder="e.g. admin, anonymous" @bind-Value="NewPolicy" class="flex-1" />
+            <BbButton Variant="ButtonVariant.Default" Size="ButtonSize.Small" @onclick="SetPolicyAsync">Apply</BbButton>
+        </div>
+    </div>
+
+    @if (LastError is not null)
+    {
+        <BbAlert Variant="AlertVariant.Danger">
+            <BbAlertDescription>@LastError</BbAlertDescription>
+        </BbAlert>
+    }
+</div>
 
 @code {
     /// <summary>The currently selected endpoint.</summary>

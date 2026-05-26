@@ -1,10 +1,8 @@
 @if (Entity is not null)
 {
-    <div class="detail-header">
-        <div style="display:flex;align-items:baseline;gap:.5rem">
-            <h3 style="margin:0">@Entity.Name</h3>
-            <span class="muted" style="font-size:.85em">@Entity.Namespace · @System.IO.Path.GetFileName(Entity.FilePath)</span>
-        </div>
+    <div class="flex items-baseline gap-2 mb-4">
+        <h2 class="text-xl font-semibold">@Entity.Name</h2>
+        <span class="text-sm text-muted-foreground">@Entity.Namespace · @System.IO.Path.GetFileName(Entity.FilePath)</span>
     </div>
 }
 

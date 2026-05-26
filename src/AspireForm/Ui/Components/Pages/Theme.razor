@@ -1,27 +1,316 @@
 @page "/theme"
 @rendermode InteractiveServer
+@inject IThemeStore ThemeStore
+@inject IJSRuntime Js
 
 <PageTitle>Theme — AspireForm</PageTitle>
 
-<div style="padding: 1rem">
-    <h2>Theme Editor</h2>
-    <p class="muted">Adjust the color tokens used by the AspireForm UI. Changes are saved to
-    <span class="kbd">.aspireform/theme.json</span> and take effect immediately.</p>
+<div class="af-two-pane">
+    @* Sidebar: theme list *@
+    <aside class="af-two-pane-sidebar flex flex-col gap-2 p-2 overflow-y-auto">
+        <div class="flex items-center justify-between px-1">
+            <span class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Themes</span>
+            <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" @onclick="NewThemeAsync" title="New theme">+</BbButton>
+        </div>
 
-    <ThemeTokenEditor />
+        <div class="space-y-0.5">
+            @foreach (var t in _themes)
+            {
+                var tName = t.Name;
+                <button type="button"
+                        class="w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors hover:bg-accent hover:text-accent-foreground @(_selectedTheme?.Name == tName ? "bg-accent text-accent-foreground font-medium" : "text-foreground")"
+                        @onclick="() => SelectThemeAsync(tName)">
+                    <div class="flex items-center gap-1">
+                        @if (t.IsActive)
+                        {
+                            <BbBadge Variant="BadgeVariant.Secondary" class="text-xs px-1 py-0">active</BbBadge>
+                        }
+                        <span class="truncate">@t.Name</span>
+                    </div>
+                </button>
+            }
+        </div>
+    </aside>
 
-    <p style="margin-top: 1.5rem;">
-        <button @onclick="ResetAll">Reset all to defaults</button>
-    </p>
+    @* Detail panel *@
+    <div class="af-two-pane-detail space-y-6">
+        @if (_selectedTheme is null)
+        {
+            <p class="text-muted-foreground text-sm">Select a theme from the sidebar.</p>
+        }
+        else
+        {
+            <div class="flex items-start justify-between gap-4">
+                <div class="space-y-1">
+                    <h2 class="text-xl font-semibold">@_selectedTheme.Name</h2>
+                    <p class="text-sm text-muted-foreground">@_selectedTheme.Description</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    @if (!_isActive)
+                    {
+                        <BbButton Variant="ButtonVariant.Default" Size="ButtonSize.Small" @onclick="ActivateAsync">Activate</BbButton>
+                    }
+                    else
+                    {
+                        <BbBadge Variant="BadgeVariant.Secondary">Active theme</BbBadge>
+                    }
+                    <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" @onclick="DuplicateAsync">Duplicate</BbButton>
+                    <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small"
+                              class="text-destructive hover:text-destructive"
+                              @onclick="DeleteAsync">Delete</BbButton>
+                </div>
+            </div>
+
+            @if (_lastError is not null)
+            {
+                <BbAlert Variant="AlertVariant.Danger">
+                    <BbAlertDescription>@_lastError</BbAlertDescription>
+                </BbAlert>
+            }
+
+            @* Radius *@
+            <BbCard>
+                <BbCardHeader>
+                    <BbCardTitle>Border Radius</BbCardTitle>
+                </BbCardHeader>
+                <BbCardContent class="flex items-center gap-4">
+                    <input type="number" min="0" max="1" step="0.25" @bind="_editRadius"
+                           class="flex h-9 w-24 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+                    <span class="text-sm text-muted-foreground">rem (0–1, step 0.25)</span>
+                    <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" @onclick="SaveRadiusAsync">Save</BbButton>
+                </BbCardContent>
+            </BbCard>
+
+            @* Token editor *@
+            <BbTabs @bind-Value="_tokenMode">
+                <BbTabsList>
+                    <BbTabsTrigger Value="light">Light tokens</BbTabsTrigger>
+                    <BbTabsTrigger Value="dark">Dark tokens</BbTabsTrigger>
+                </BbTabsList>
+                <BbTabsContent Value="light">
+                    <TokenBucketEditor Tokens="_lightEdits" OnSave="SaveLightAsync" />
+                </BbTabsContent>
+                <BbTabsContent Value="dark">
+                    <TokenBucketEditor Tokens="_darkEdits" OnSave="SaveDarkAsync" />
+                </BbTabsContent>
+            </BbTabs>
+
+            @* Import / Export *@
+            <BbCard>
+                <BbCardHeader>
+                    <BbCardTitle>Import / Export</BbCardTitle>
+                    <BbCardDescription>Paste a tweakcn or shadcn JSON theme to import. Export copies the current theme JSON to the clipboard.</BbCardDescription>
+                </BbCardHeader>
+                <BbCardContent class="space-y-3">
+                    <textarea class="w-full h-32 rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm resize-y placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              placeholder='{ "light": { "background": "0 0% 100%", ... }, "dark": { ... } }'
+                              @bind="_importJson" />
+                    <div class="flex gap-2">
+                        <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" @onclick="ImportAsync">Import JSON</BbButton>
+                        <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small" @onclick="ExportAsync">Copy JSON</BbButton>
+                    </div>
+                    @if (_importError is not null)
+                    {
+                        <BbAlert Variant="AlertVariant.Danger">
+                            <BbAlertDescription>@_importError</BbAlertDescription>
+                        </BbAlert>
+                    }
+                    @if (_importSuccess)
+                    {
+                        <BbAlert Variant="AlertVariant.Success">
+                            <BbAlertDescription>Theme imported successfully.</BbAlertDescription>
+                        </BbAlert>
+                    }
+                </BbCardContent>
+            </BbCard>
+        }
+
+        @* Reset to defaults *@
+        <BbSeparator />
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium">Reset to defaults</p>
+                <p class="text-xs text-muted-foreground">Reinstalls all built-in themes, overwriting any changes.</p>
+            </div>
+            <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small"
+                      class="text-destructive hover:text-destructive"
+                      @onclick="ResetAllAsync">Reset</BbButton>
+        </div>
+    </div>
 </div>
 
 @code {
-    [Inject] private IThemeStore ThemeStore { get; set; } = default!;
-    [Inject] private Microsoft.JSInterop.IJSRuntime JS { get; set; } = default!;
+    private IReadOnlyList<ThemeSummary> _themes = [];
+    private ThemeDefinition? _selectedTheme;
+    private bool _isActive;
+    private string _tokenMode = "light";
+    private double _editRadius;
+    private Dictionary<string, string> _lightEdits = [];
+    private Dictionary<string, string> _darkEdits = [];
+    private string _importJson = "";
+    private string? _importError;
+    private bool _importSuccess;
+    private string? _lastError;
+    private IJSObjectReference? _module;
 
-    private async Task ResetAll()
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync() => await RefreshAsync();
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "/theme-interop.js");
+    }
+
+    private async Task RefreshAsync()
+    {
+        _themes = await ThemeStore.ListAsync();
+        var activation = await ThemeStore.GetActiveAsync();
+
+        // Keep selection or default to active theme.
+        var selectName = _selectedTheme?.Name ?? activation.ActiveName;
+        await SelectThemeAsync(selectName);
+    }
+
+    private async Task SelectThemeAsync(string name)
+    {
+        try
+        {
+            _selectedTheme = await ThemeStore.GetAsync(name);
+            var activation = await ThemeStore.GetActiveAsync();
+            _isActive = activation.ActiveName == name;
+            _editRadius = _selectedTheme.Radius;
+            _lightEdits = _selectedTheme.Light.ToDictionary(kv => kv.Key, kv => kv.Value);
+            _darkEdits = _selectedTheme.Dark.ToDictionary(kv => kv.Key, kv => kv.Value);
+            _importError = null;
+            _importSuccess = false;
+            _lastError = null;
+        }
+        catch (ThemeLoadException ex)
+        {
+            _lastError = ex.Message;
+        }
+    }
+
+    private async Task ActivateAsync()
+    {
+        if (_selectedTheme is null) return;
+        await ThemeStore.SetActiveAsync(_selectedTheme.Name);
+        if (_module is not null)
+            await _module.InvokeVoidAsync("switchTheme", _selectedTheme.Name);
+        _isActive = true;
+        _themes = await ThemeStore.ListAsync();
+    }
+
+    private async Task DuplicateAsync()
+    {
+        if (_selectedTheme is null) return;
+        var newName = await ThemeStore.DuplicateAsync(_selectedTheme.Name, $"{_selectedTheme.Name} (copy)");
+        _themes = await ThemeStore.ListAsync();
+        await SelectThemeAsync(newName);
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_selectedTheme is null) return;
+        var deletedName = _selectedTheme.Name;
+        await ThemeStore.DeleteAsync(deletedName);
+        _selectedTheme = null;
+        await RefreshAsync();
+    }
+
+    private async Task NewThemeAsync()
+    {
+        var name = await ThemeStore.DuplicateAsync(_themes.First().Name, "New Theme");
+        _themes = await ThemeStore.ListAsync();
+        await SelectThemeAsync(name);
+    }
+
+    private async Task SaveRadiusAsync()
+    {
+        if (_selectedTheme is null) return;
+        var updated = _selectedTheme with { Radius = _editRadius };
+        await ThemeStore.SaveAsync(updated);
+        _selectedTheme = updated;
+        if (_isActive && _module is not null)
+            await _module.InvokeVoidAsync("reloadThemeCss");
+    }
+
+    private async Task SaveLightAsync()
+    {
+        if (_selectedTheme is null) return;
+        var updated = _selectedTheme with { Light = _lightEdits };
+        await ThemeStore.SaveAsync(updated);
+        _selectedTheme = updated;
+        if (_isActive && _module is not null)
+            await _module.InvokeVoidAsync("reloadThemeCss");
+    }
+
+    private async Task SaveDarkAsync()
+    {
+        if (_selectedTheme is null) return;
+        var updated = _selectedTheme with { Dark = _darkEdits };
+        await ThemeStore.SaveAsync(updated);
+        _selectedTheme = updated;
+        if (_isActive && _module is not null)
+            await _module.InvokeVoidAsync("reloadThemeCss");
+    }
+
+    private async Task ImportAsync()
+    {
+        _importError = null;
+        _importSuccess = false;
+        if (_selectedTheme is null || string.IsNullOrWhiteSpace(_importJson)) return;
+        try
+        {
+            var imported = TweakcnImporter.Parse(_importJson, _selectedTheme.Name);
+            var updated = _selectedTheme with
+            {
+                Light = imported.Light,
+                Dark = imported.Dark,
+                Radius = imported.Radius,
+            };
+            await ThemeStore.SaveAsync(updated);
+            _selectedTheme = updated;
+            _lightEdits = updated.Light.ToDictionary(kv => kv.Key, kv => kv.Value);
+            _darkEdits = updated.Dark.ToDictionary(kv => kv.Key, kv => kv.Value);
+            _editRadius = updated.Radius;
+            _importJson = "";
+            _importSuccess = true;
+            if (_isActive && _module is not null)
+                await _module.InvokeVoidAsync("reloadThemeCss");
+        }
+        catch (TweakcnImportException ex)
+        {
+            _importError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _importError = $"Import failed: {ex.Message}";
+        }
+    }
+
+    private async Task ExportAsync()
+    {
+        if (_selectedTheme is null || _module is null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            name = _selectedTheme.Name,
+            description = _selectedTheme.Description,
+            radius = _selectedTheme.Radius,
+            light = _selectedTheme.Light,
+            dark = _selectedTheme.Dark,
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        await _module.InvokeVoidAsync("copyToClipboard", json);
+    }
+
+    private async Task ResetAllAsync()
     {
         await ThemeStore.ResetToDefaultsAsync();
-        await JS.InvokeVoidAsync("afTheme.reload");
+        _selectedTheme = null;
+        await RefreshAsync();
+        if (_module is not null)
+            await _module.InvokeVoidAsync("reloadThemeCss");
     }
 }

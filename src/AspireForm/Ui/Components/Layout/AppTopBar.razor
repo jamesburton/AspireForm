@@ -1,0 +1,20 @@
+@* AppTopBar — top navigation bar with theme switcher and dark mode toggle. *@
+
+<header class="flex items-center justify-between h-12 px-4 border-b bg-background shrink-0">
+    <div class="flex items-center gap-2">
+        @if (PageTitle is not null)
+        {
+            <span class="text-sm font-medium text-foreground">@PageTitle</span>
+        }
+    </div>
+
+    <div class="flex items-center gap-1">
+        <ThemeSwitcherDropdown />
+        <DarkModeToggle />
+    </div>
+</header>
+
+@code {
+    /// <summary>Optional page title displayed in the top bar.</summary>
+    [Parameter] public string? PageTitle { get; set; }
+}

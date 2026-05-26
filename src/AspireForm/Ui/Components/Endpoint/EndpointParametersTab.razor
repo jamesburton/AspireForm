@@ -1,28 +1,44 @@
 @if (Endpoint is null || ProjectPath is null) { return; }
 
-<h4 style="margin-bottom:.4rem">Route parameters</h4>
-@if (Endpoint.Parameters.Count > 0)
-{
-    <table class="entities">
-        <thead><tr><th>Name</th><th>Constraint</th><th>Optional?</th></tr></thead>
-        <tbody>
-            @foreach (var p in Endpoint.Parameters)
-            {
-                <tr>
-                    <td><code>@p.Name</code></td>
-                    <td><code>@(p.Constraint ?? "—")</code></td>
-                    <td>@(p.IsOptional ? "yes" : "no")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-else
-{
-    <p class="muted">No route parameters.</p>
-}
+<div class="space-y-3">
+    @if (Endpoint.Parameters.Count > 0)
+    {
+        <BbCard>
+            <BbCardContent class="p-0">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b bg-muted/50 text-muted-foreground">
+                            <th class="px-4 py-2 text-left font-medium">Name</th>
+                            <th class="px-4 py-2 text-left font-medium">Constraint</th>
+                            <th class="px-4 py-2 text-left font-medium">Optional</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Endpoint.Parameters)
+                        {
+                            <tr class="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                                <td class="px-4 py-2 font-mono">@p.Name</td>
+                                <td class="px-4 py-2 font-mono text-muted-foreground">@(p.Constraint ?? "—")</td>
+                                <td class="px-4 py-2">@(p.IsOptional ? "yes" : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </BbCardContent>
+        </BbCard>
+    }
+    else
+    {
+        <p class="text-sm text-muted-foreground">No route parameters.</p>
+    }
 
-@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+    @if (LastError is not null)
+    {
+        <BbAlert Variant="AlertVariant.Danger">
+            <BbAlertDescription>@LastError</BbAlertDescription>
+        </BbAlert>
+    }
+</div>
 
 @code {
     /// <summary>The currently selected endpoint.</summary>

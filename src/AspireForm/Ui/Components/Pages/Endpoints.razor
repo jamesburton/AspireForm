@@ -5,72 +5,75 @@
 
 <PageTitle>Endpoints — AspireForm</PageTitle>
 
-<div class="two-pane">
-    <aside class="sidebar">
-        <div class="sidebar-actions">
-            <input type="text" placeholder="Search endpoints..." @bind="Filter" @bind:event="oninput" style="width:100%" />
-        </div>
-        <div class="sidebar-actions">
-            <button @onclick="OpenNewEndpoint" style="width:100%">+ New Endpoint</button>
-        </div>
-        <div class="sidebar-list">
+<div class="af-two-pane">
+    @* Sidebar: search + new endpoint + list *@
+    <aside class="af-two-pane-sidebar flex flex-col gap-2 p-2 overflow-y-auto">
+        <BbInput Placeholder="Search endpoints…" @bind-Value="Filter" UpdateTiming="UpdateTiming.Immediate" class="w-full" />
+        <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" class="w-full" @onclick="() => ShowNewEndpoint = true">+ New Endpoint</BbButton>
+
+        <div class="space-y-0.5 mt-1">
             @foreach (var ep in FilteredEndpoints.OrderBy(e => e.Route, StringComparer.Ordinal))
             {
-                <div class="sidebar-item @(Selected?.MethodName == ep.MethodName && Selected?.HandlerTypeName == ep.HandlerTypeName ? "active" : "")" @onclick="() => Select(ep)">
-                    <span class="muted" style="font-size:.75em;margin-right:.3rem">@ep.HttpMethod</span>@ep.Route
-                </div>
+                var epKey = $"{ep.HandlerTypeName}.{ep.MethodName}";
+                var selKey = Selected is null ? "" : $"{Selected.HandlerTypeName}.{Selected.MethodName}";
+                <button type="button"
+                        class="w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors hover:bg-accent hover:text-accent-foreground @(selKey == epKey ? "bg-accent text-accent-foreground font-medium" : "text-foreground")"
+                        @onclick="() => Select(ep)">
+                    <BbBadge Variant="BadgeVariant.Secondary" class="mr-1 font-mono text-xs">@ep.HttpMethod</BbBadge>
+                    @ep.Route
+                </button>
             }
             @if (FilteredEndpoints.Count == 0)
             {
-                <div class="sidebar-item muted">No endpoints</div>
+                <p class="px-3 py-2 text-sm text-muted-foreground">No endpoints</p>
             }
         </div>
     </aside>
-    <section class="detail">
+
+    @* Detail panel *@
+    <div class="af-two-pane-detail">
         @if (LoadError is not null)
         {
-            <div class="banner">@LoadError</div>
+            <BbAlert Variant="AlertVariant.Danger" class="mb-4">
+                <BbAlertDescription>@LoadError</BbAlertDescription>
+            </BbAlert>
         }
         @if (Selected is null)
         {
-            <div class="detail-body muted">Select an endpoint from the sidebar.</div>
+            <p class="text-muted-foreground text-sm">Select an endpoint from the sidebar.</p>
         }
         else
         {
             <EndpointHeader Endpoint="@Selected" />
-            <div class="detail-tabs">
-                <div class="detail-tab @(ActiveTab == Tab.Parameters ? "active" : "")" @onclick="() => ActiveTab = Tab.Parameters">Parameters (@Selected.Parameters.Count)</div>
-                <div class="detail-tab @(ActiveTab == Tab.Auth ? "active" : "")" @onclick="() => ActiveTab = Tab.Auth">Auth</div>
-                <div class="detail-tab @(ActiveTab == Tab.Attributes ? "active" : "")" @onclick="() => ActiveTab = Tab.Attributes">Attributes (@Selected.Attributes.Count)</div>
-            </div>
-            <div class="detail-body">
-                @switch (ActiveTab)
-                {
-                    case Tab.Parameters:
-                        <EndpointParametersTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
-                        break;
-                    case Tab.Auth:
-                        <EndpointAuthTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
-                        break;
-                    case Tab.Attributes:
-                        <EndpointAttributesTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
-                        break;
-                }
-            </div>
+
+            <BbTabs @bind-Value="ActiveTab" class="mt-4">
+                <BbTabsList>
+                    <BbTabsTrigger Value="parameters">Parameters (@Selected.Parameters.Count)</BbTabsTrigger>
+                    <BbTabsTrigger Value="auth">Auth</BbTabsTrigger>
+                    <BbTabsTrigger Value="attributes">Attributes (@Selected.Attributes.Count)</BbTabsTrigger>
+                </BbTabsList>
+                <BbTabsContent Value="parameters">
+                    <EndpointParametersTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
+                </BbTabsContent>
+                <BbTabsContent Value="auth">
+                    <EndpointAuthTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
+                </BbTabsContent>
+                <BbTabsContent Value="attributes">
+                    <EndpointAttributesTab Endpoint="@Selected" Service="@EndpointCatalog" ProjectPath="@CsprojPath" OnMutated="ReloadAsync" />
+                </BbTabsContent>
+            </BbTabs>
         }
-    </section>
+    </div>
 </div>
 
 @if (ShowNewEndpoint)
 {
-    <NewEndpointDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEndpointDir" OnClose="CloseNewEndpoint" OnCreated="OnEndpointCreatedAsync" />
+    <NewEndpointDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEndpointDir" OnClose="() => { ShowNewEndpoint = false; }" OnCreated="ReloadAsync" />
 }
 
 @code {
-    private enum Tab { Parameters, Auth, Attributes }
-
     private string Filter { get; set; } = "";
-    private Tab ActiveTab { get; set; } = Tab.Parameters;
+    private string ActiveTab { get; set; } = "parameters";
     private EndpointInfo? Selected { get; set; }
     private EndpointCatalog? CatalogSnapshot { get; set; }
     private string? CsprojPath { get; set; }
@@ -114,13 +117,4 @@
     }
 
     private void Select(EndpointInfo ep) => Selected = ep;
-
-    private void OpenNewEndpoint()
-    {
-        Console.WriteLine($"[ui-diag] OpenNewEndpoint invoked; ShowNewEndpoint was {ShowNewEndpoint}, setting to true");
-        ShowNewEndpoint = true;
-    }
-
-    private void CloseNewEndpoint() => ShowNewEndpoint = false;
-    private async Task OnEndpointCreatedAsync() { ShowNewEndpoint = false; await ReloadAsync(); }
 }

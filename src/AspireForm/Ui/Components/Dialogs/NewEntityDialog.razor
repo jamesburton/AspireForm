@@ -1,31 +1,67 @@
+@* NewEntityDialog — dialog for creating a new entity class. Parent controls open state via conditional render. *@
 @inject IEntityCatalogService Catalog
 
-<div style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10">
-    <div style="background:#fff;padding:1rem 1.25rem;border-radius:6px;min-width:380px">
-        <h3 style="margin-top:0">New Entity</h3>
-        <div style="display:flex;flex-direction:column;gap:.5rem">
-            <label>Name <input type="text" @bind="Name" /></label>
-            <label>Namespace <input type="text" @bind="Namespace" placeholder="Demo.Models" /></label>
-            <label>File path <input type="text" @bind="FilePath" placeholder="@DefaultDir/Models/Book.cs" style="width:100%" /></label>
+<BbDialog Open="true" OpenChanged="HandleOpenChanged">
+    <BbDialogContent class="sm:max-w-md">
+        <BbDialogHeader>
+            <BbDialogTitle>New Entity</BbDialogTitle>
+            <BbDialogDescription>Create a new EF Core entity class in your project.</BbDialogDescription>
+        </BbDialogHeader>
+
+        <div class="grid gap-4 py-4">
+            <div class="grid gap-1.5">
+                <label class="text-sm font-medium" for="entity-name">Name</label>
+                <BbInput Id="entity-name" Placeholder="e.g. Book" @bind-Value="Name" class="w-full" />
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-medium" for="entity-ns">Namespace</label>
+                <BbInput Id="entity-ns" Placeholder="Demo.Models" @bind-Value="Namespace" class="w-full" />
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-medium" for="entity-path">File path</label>
+                <BbInput Id="entity-path" Placeholder="@($"{DefaultDir}/Models/Book.cs")" @bind-Value="FilePath" class="w-full" />
+            </div>
+
+            @if (LastError is not null)
+            {
+                <BbAlert Variant="AlertVariant.Danger">
+                    <BbAlertDescription>@LastError</BbAlertDescription>
+                </BbAlert>
+            }
         </div>
-        @if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
-        <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.8rem">
-            <button @onclick="OnClose">Cancel</button>
-            <button @onclick="CreateAsync">Create</button>
-        </div>
-    </div>
-</div>
+
+        <BbDialogFooter>
+            <BbDialogClose AsChild="true">
+                <BbButton Variant="ButtonVariant.Outline">Cancel</BbButton>
+            </BbDialogClose>
+            <BbButton Variant="ButtonVariant.Default" @onclick="CreateAsync">Create</BbButton>
+        </BbDialogFooter>
+    </BbDialogContent>
+</BbDialog>
 
 @code {
+    /// <summary>Absolute path to the Web project .csproj file.</summary>
     [Parameter] public string? CsprojPath { get; set; }
+
+    /// <summary>Default directory used to resolve relative file paths.</summary>
     [Parameter] public string DefaultDir { get; set; } = "";
+
+    /// <summary>Raised when the dialog should be closed without creating.</summary>
     [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>Raised after a new entity is successfully created.</summary>
     [Parameter] public EventCallback OnCreated { get; set; }
 
     private string Name { get; set; } = "";
     private string Namespace { get; set; } = "";
     private string FilePath { get; set; } = "";
     private string? LastError { get; set; }
+
+    private async Task HandleOpenChanged(bool open)
+    {
+        if (!open)
+            await OnClose.InvokeAsync();
+    }
 
     private async Task CreateAsync()
     {

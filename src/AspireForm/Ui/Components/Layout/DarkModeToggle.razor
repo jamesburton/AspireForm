@@ -1,0 +1,42 @@
+@* DarkModeToggle — toggles dark mode via IThemeStore and JS interop. *@
+@rendermode InteractiveServer
+@inject IThemeStore ThemeStore
+@inject IJSRuntime Js
+
+<BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Icon" @onclick="ToggleAsync" title="Toggle dark mode">
+    @if (_isDark)
+    {
+        <span>&#9728;</span>
+    }
+    else
+    {
+        <span>&#9790;</span>
+    }
+</BbButton>
+
+@code {
+    private bool _isDark;
+    private IJSObjectReference? _module;
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        var activation = await ThemeStore.GetActiveAsync();
+        _isDark = activation.DarkMode;
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "/theme-interop.js");
+    }
+
+    private async Task ToggleAsync()
+    {
+        _isDark = !_isDark;
+        await ThemeStore.SetDarkModeAsync(_isDark);
+        if (_module is not null)
+            await _module.InvokeVoidAsync("setDarkMode", _isDark);
+    }
+}

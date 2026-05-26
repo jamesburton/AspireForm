@@ -1,0 +1,16 @@
+@* Sidebar navigation item using NavLink for active highlighting. *@
+
+<NavLink href="@Href"
+         Match="@(Href == "/" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+         class="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
+         ActiveClass="bg-accent text-accent-foreground font-medium">
+    <span>@Label</span>
+</NavLink>
+
+@code {
+    /// <summary>Navigation target URL.</summary>
+    [Parameter, EditorRequired] public string Href { get; set; } = "/";
+
+    /// <summary>Display label.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+}

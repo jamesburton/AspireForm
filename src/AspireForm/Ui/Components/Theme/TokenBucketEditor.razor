@@ -1,0 +1,64 @@
+@* TokenBucketEditor — editable table of CSS variable token name→value pairs. *@
+
+<div class="space-y-3 mt-3">
+    <BbCard>
+        <BbCardContent class="p-0">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b bg-muted/50 text-muted-foreground">
+                        <th class="px-4 py-2 text-left font-medium w-48">Token</th>
+                        <th class="px-4 py-2 text-left font-medium">Value <span class="font-normal text-xs">(oklch or CSS color)</span></th>
+                        <th class="px-4 py-2 w-16 text-center">Preview</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var token in ThemeTokenNames.All)
+                    {
+                        var key = token;
+                        var value = Tokens.TryGetValue(key, out var v) ? v : "";
+                        <tr class="border-b last:border-b-0 hover:bg-muted/20 transition-colors">
+                            <td class="px-4 py-1.5 font-mono text-xs text-muted-foreground">--@token</td>
+                            <td class="px-4 py-1.5">
+                                <BbInput Value="@value"
+                                         ValueChanged="@((string newVal) => UpdateToken(key, newVal))"
+                                         UpdateTiming="UpdateTiming.OnChange"
+                                         class="h-7 text-xs font-mono w-full" />
+                            </td>
+                            <td class="px-4 py-1.5 text-center">
+                                <span class="inline-block w-6 h-6 rounded border border-border shadow-sm"
+                                      style="@GetPreviewStyle(value)" title="@value"></span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </BbCardContent>
+    </BbCard>
+
+    <BbButton Variant="ButtonVariant.Default" Size="ButtonSize.Small" @onclick="SaveClicked">Save tokens</BbButton>
+</div>
+
+@code {
+    /// <summary>Mutable dictionary of token name → CSS value.</summary>
+    [Parameter, EditorRequired] public Dictionary<string, string> Tokens { get; set; } = [];
+
+    /// <summary>Raised when the user clicks Save.</summary>
+    [Parameter, EditorRequired] public EventCallback OnSave { get; set; }
+
+    private void UpdateToken(string key, string value) => Tokens[key] = value;
+
+    private async Task SaveClicked() => await OnSave.InvokeAsync();
+
+    // Attempt to render a color preview. Oklch values need wrapping; CSS named colors and #hex work directly.
+    private static string GetPreviewStyle(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        // If it looks like oklch space-separated values (no function wrapping), add oklch().
+        var trimmed = value.Trim();
+        if (!trimmed.StartsWith('#') && !trimmed.StartsWith("oklch") && !trimmed.StartsWith("rgb") && !trimmed.StartsWith("hsl"))
+        {
+            trimmed = $"oklch({trimmed})";
+        }
+        return $"background-color: {trimmed};";
+    }
+}

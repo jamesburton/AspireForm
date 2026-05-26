@@ -2,6 +2,7 @@ using AspireForm.ApiCatalog;
 using AspireForm.EntityCatalog;
 using AspireForm.Ui.Components;
 using AspireForm.Ui.Theme;
+using BlazorBlueprint.Components;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,10 @@ internal static class UiHost
         });
         builder.WebHost.UseKestrel(k => k.ListenLocalhost(opts.Port));
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+
+        /* Blueprint requires its own service registration for portals, focus traps, toasts, etc. */
+        builder.Services.AddBlazorBlueprintComponents();
+
         builder.Services.AddSingleton<IEntityCatalogService>(_ => new RoslynEntityCatalogService());
         builder.Services.AddSingleton<IEndpointCatalogService>(_ => new RoslynEndpointCatalogService());
         builder.Services.AddSingleton(opts);
@@ -40,16 +45,50 @@ internal static class UiHost
         app.MapStaticAssets();
         app.UseAntiforgery();
 
-        // Serve the active theme tokens as CSS custom properties.
-        app.MapGet("/theme.css", (IThemeStore themeStore) =>
+        /* /theme.css — emits :root { --background: ...; ... } for the active theme. */
+        app.MapGet("/theme.css", async (IThemeStore themeStore) =>
         {
-            var tokens = themeStore.GetTokens();
+            var activation = await themeStore.GetActiveAsync();
+            ThemeDefinition theme;
+            try { theme = await themeStore.GetAsync(activation.ActiveName); }
+            catch (ThemeLoadException)
+            {
+                /* Fallback: return an empty stylesheet if the active theme is broken. */
+                return Results.Content(":root {}", "text/css");
+            }
+
+            var tokens = activation.DarkMode ? theme.Dark : theme.Light;
             var sb = new System.Text.StringBuilder();
             sb.AppendLine(":root {");
             foreach (var kv in tokens)
-                sb.AppendLine($"  --af-{kv.Key}: {kv.Value};");
+                sb.AppendLine($"  --{kv.Key}: {kv.Value};");
+            sb.AppendLine($"  --radius: {theme.Radius.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}rem;");
             sb.AppendLine("}");
+            if (activation.DarkMode)
+                sb.AppendLine("html { color-scheme: dark; }");
+
             return Results.Content(sb.ToString(), "text/css");
+        });
+
+        /* POST /themes/set-active — switches the active theme (called from ThemeSwitcherDropdown JS). */
+        app.MapPost("/themes/set-active", async (IThemeStore themeStore, SetActiveRequest req) =>
+        {
+            try
+            {
+                await themeStore.SetActiveAsync(req.Name);
+                return Results.Ok(new { ok = true });
+            }
+            catch (ThemeLoadException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        /* POST /themes/set-dark-mode — toggles dark mode. */
+        app.MapPost("/themes/set-dark-mode", async (IThemeStore themeStore, SetDarkModeRequest req) =>
+        {
+            await themeStore.SetDarkModeAsync(req.Dark);
+            return Results.Ok(new { ok = true });
         });
 
         app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
@@ -60,4 +99,7 @@ internal static class UiHost
         if (opts.LaunchBrowser) BrowserLauncher.Open(url);
         await app.RunAsync(ct);
     }
+
+    private sealed record SetActiveRequest(string Name);
+    private sealed record SetDarkModeRequest(bool Dark);
 }

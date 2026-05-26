@@ -51,7 +51,7 @@ public sealed class McpCommand : AsyncCommand<McpCommand.Settings>
         }
     }
 
-    /// <summary>Builds the registry of all 14 low-level tools, 12 entity tools, 10 endpoint tools, and 3 macros (39 total), all bound to <paramref name="projectDir"/> as their default.</summary>
+    /// <summary>Builds the registry of all 14 low-level tools, 12 entity tools, 10 endpoint tools, 3 macros, and 3 theme tools (42 total), all bound to <paramref name="projectDir"/> as their default.</summary>
     public static ToolRegistry BuildRegistry(string projectDir)
     {
         var r = new ToolRegistry();
@@ -103,8 +103,10 @@ public sealed class McpCommand : AsyncCommand<McpCommand.Settings>
         r.Register(new AddCacheLayerTool(projectDir));
         r.Register(new AddAuthenticationTool(projectDir));
 
-        // Theme tools (#5.1) — 1 read-only tool.
+        // Theme tools (#5.1, #6.0) — 3 tools: show, list, activate.
         r.Register(new ThemeShowTool(projectDir));
+        r.Register(new ThemeListTool(projectDir));
+        r.Register(new ThemeActivateTool(projectDir));
 
         return r;
     }

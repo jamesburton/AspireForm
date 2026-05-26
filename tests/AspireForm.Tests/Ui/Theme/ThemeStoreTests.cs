@@ -13,77 +13,112 @@ public sealed class ThemeStoreTests : IDisposable
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
     [Fact]
-    public void GetTokens_returns_all_defaults_when_no_file_exists()
+    public async Task ListAsync_returns_built_in_themes_on_fresh_dir()
     {
         var store = new ThemeStore(_dir);
-        var tokens = store.GetTokens();
-        tokens.Should().ContainKey("color-primary");
-        tokens["color-primary"].Should().Be("#1a73e8");
-        tokens.Count.Should().BeGreaterThanOrEqualTo(14);
+        var themes = await store.ListAsync();
+        themes.Should().NotBeEmpty();
+        themes.Any(t => t.IsActive).Should().BeTrue(because: "one theme must be active");
     }
 
     [Fact]
-    public async Task SaveTokenAsync_persists_override_and_GetTokens_returns_it()
+    public async Task GetActiveAsync_returns_first_built_in_theme_by_default()
     {
         var store = new ThemeStore(_dir);
-        await store.SaveTokenAsync("color-primary", "#ff0000");
-        var tokens = store.GetTokens();
-        tokens["color-primary"].Should().Be("#ff0000");
+        var activation = await store.GetActiveAsync();
+        activation.ActiveName.Should().NotBeNullOrEmpty();
+        activation.DarkMode.Should().BeFalse(because: "dark mode defaults to off");
     }
 
     [Fact]
-    public async Task SaveTokenAsync_creates_aspireform_directory_if_absent()
+    public async Task GetAsync_returns_theme_with_all_tokens()
     {
-        var dir = Path.Combine(_dir, "subdir");
-        var store = new ThemeStore(dir);
-        await store.SaveTokenAsync("color-primary", "#0000ff");
-        File.Exists(Path.Combine(dir, ".aspireform", "theme.json")).Should().BeTrue();
+        var store = new ThemeStore(_dir);
+        var activation = await store.GetActiveAsync();
+        var theme = await store.GetAsync(activation.ActiveName);
+        theme.Light.Should().ContainKey("background");
+        theme.Light.Should().ContainKey("primary");
+        theme.Light.Count.Should().BeGreaterThanOrEqualTo(19);
     }
 
     [Fact]
-    public async Task ResetToDefaultsAsync_removes_all_overrides()
+    public async Task SaveAsync_persists_changes_and_GetAsync_returns_them()
     {
         var store = new ThemeStore(_dir);
-        await store.SaveTokenAsync("color-primary", "#ff0000");
+        var activation = await store.GetActiveAsync();
+        var original = await store.GetAsync(activation.ActiveName);
+        var updated = original with
+        {
+            Light = original.Light.ToDictionary(kv => kv.Key, kv => kv.Key == "background" ? "0 0% 50%" : kv.Value),
+        };
+        await store.SaveAsync(updated);
+        var reload = await store.GetAsync(activation.ActiveName);
+        reload.Light["background"].Should().Be("0 0% 50%");
+    }
+
+    [Fact]
+    public async Task SetActiveAsync_changes_active_theme()
+    {
+        var store = new ThemeStore(_dir);
+        var themes = await store.ListAsync();
+        themes.Count.Should().BeGreaterThan(1, because: "need at least 2 themes to switch");
+        var other = themes.First(t => !t.IsActive);
+        await store.SetActiveAsync(other.Name);
+        var activation = await store.GetActiveAsync();
+        activation.ActiveName.Should().Be(other.Name);
+    }
+
+    [Fact]
+    public async Task SetDarkModeAsync_updates_dark_mode_flag()
+    {
+        var store = new ThemeStore(_dir);
+        await store.SetDarkModeAsync(true);
+        var activation = await store.GetActiveAsync();
+        activation.DarkMode.Should().BeTrue();
+        await store.SetDarkModeAsync(false);
+        activation = await store.GetActiveAsync();
+        activation.DarkMode.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DuplicateAsync_creates_new_theme_with_given_name()
+    {
+        var store = new ThemeStore(_dir);
+        var activation = await store.GetActiveAsync();
+        var newName = await store.DuplicateAsync(activation.ActiveName, "My Copy");
+        newName.Should().Be("My Copy");
+        var themes = await store.ListAsync();
+        themes.Any(t => t.Name == "My Copy").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_removes_theme_and_activates_remaining()
+    {
+        var store = new ThemeStore(_dir);
+        var themes = await store.ListAsync();
+        themes.Count.Should().BeGreaterThan(1, because: "need at least 2 themes to delete one");
+        var toDelete = themes.First(t => !t.IsActive);
+        await store.DeleteAsync(toDelete.Name);
+        var after = await store.ListAsync();
+        after.Any(t => t.Name == toDelete.Name).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResetToDefaultsAsync_reinstalls_built_in_themes_and_resets_active()
+    {
+        var store = new ThemeStore(_dir);
+        var themes = await store.ListAsync();
+        var other = themes.First(t => !t.IsActive);
+        await store.SetActiveAsync(other.Name);
         await store.ResetToDefaultsAsync();
-        store.GetTokens()["color-primary"].Should().Be("#1a73e8");
-    }
 
-    [Fact]
-    public async Task Unknown_keys_in_json_are_preserved_on_roundtrip()
-    {
-        var aspireformDir = Path.Combine(_dir, ".aspireform");
-        Directory.CreateDirectory(aspireformDir);
-        await File.WriteAllTextAsync(Path.Combine(aspireformDir, "theme.json"),
-            """{ "color-primary": "#ff0000", "future-token": "#123456" }""");
-        var store = new ThemeStore(_dir);
-        await store.SaveTokenAsync("color-text", "#333333");
-        var raw = await File.ReadAllTextAsync(Path.Combine(aspireformDir, "theme.json"));
-        raw.Should().Contain("future-token");
-    }
+        // After reset, the active theme should be "AspireForm Light" (first built-in).
+        var activation = await store.GetActiveAsync();
+        activation.ActiveName.Should().Be("AspireForm Light");
+        activation.DarkMode.Should().BeFalse();
 
-    [Fact]
-    public void GetTokens_returns_defaults_when_file_is_malformed_json()
-    {
-        var aspireformDir = Path.Combine(_dir, ".aspireform");
-        Directory.CreateDirectory(aspireformDir);
-        File.WriteAllText(Path.Combine(aspireformDir, "theme.json"), "{ not valid json");
-        var store = new ThemeStore(_dir);
-        var tokens = store.GetTokens();
-        tokens["color-primary"].Should().Be("#1a73e8"); // default
-    }
-
-    [Fact]
-    public async Task Concurrent_saves_do_not_corrupt_the_file()
-    {
-        var store = new ThemeStore(_dir);
-        var tasks = Enumerable.Range(0, 10)
-            .Select(i => store.SaveTokenAsync("color-primary", $"#{i:X6}"));
-        await Task.WhenAll(tasks);
-
-        // Verify file is valid JSON.
-        var raw = await File.ReadAllTextAsync(Path.Combine(_dir, ".aspireform", "theme.json"));
-        var act = () => System.Text.Json.JsonDocument.Parse(raw);
-        act.Should().NotThrow();
+        // Built-in themes should all be present.
+        var afterThemes = await store.ListAsync();
+        afterThemes.Should().NotBeEmpty(because: "built-in themes are reinstalled");
     }
 }

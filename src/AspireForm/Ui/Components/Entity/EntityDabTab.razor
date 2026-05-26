@@ -2,14 +2,37 @@
 
 @if (Entity is null || CsprojPath is null) { return; }
 
-<div style="display:flex; flex-direction: column; gap: .5rem; max-width: 520px">
-    <label><input type="checkbox" checked="@IsExposed" @onchange="ToggleExposeAsync" /> Expose via DAB <span class="muted">([DabExpose])</span></label>
-    <label><input type="checkbox" checked="@IsHidden" @onchange="ToggleHiddenAsync" /> Hide from DAB <span class="muted">([DabHidden] — overrides expose)</span></label>
-    <label><input type="checkbox" checked="@IsRestOnly" @onchange="ToggleRestOnlyAsync" /> REST only <span class="muted">([DabRestOnly])</span></label>
-    <label><input type="checkbox" checked="@IsGraphqlOnly" @onchange="ToggleGraphqlOnlyAsync" /> GraphQL only <span class="muted">([DabGraphqlOnly])</span></label>
-</div>
+<div class="space-y-3 max-w-sm">
+    <div class="flex flex-col gap-2">
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked="@IsExposed" @onchange="ToggleExposeAsync" class="h-4 w-4 rounded border-input" />
+            Expose via DAB
+            <span class="text-xs text-muted-foreground">[DabExpose]</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked="@IsHidden" @onchange="ToggleHiddenAsync" class="h-4 w-4 rounded border-input" />
+            Hide from DAB
+            <span class="text-xs text-muted-foreground">[DabHidden] — overrides expose</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked="@IsRestOnly" @onchange="ToggleRestOnlyAsync" class="h-4 w-4 rounded border-input" />
+            REST only
+            <span class="text-xs text-muted-foreground">[DabRestOnly]</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked="@IsGraphqlOnly" @onchange="ToggleGraphqlOnlyAsync" class="h-4 w-4 rounded border-input" />
+            GraphQL only
+            <span class="text-xs text-muted-foreground">[DabGraphqlOnly]</span>
+        </label>
+    </div>
 
-@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+    @if (LastError is not null)
+    {
+        <BbAlert Variant="AlertVariant.Danger">
+            <BbAlertDescription>@LastError</BbAlertDescription>
+        </BbAlert>
+    }
+</div>
 
 @code {
     [Parameter] public Entity? Entity { get; set; }

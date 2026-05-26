@@ -3,6 +3,7 @@ using AspireForm.EntityCatalog;
 using AspireForm.Ui;
 using AspireForm.Ui.Components.Pages;
 using AwesomeAssertions;
+using BlazorBlueprint.Components;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -25,6 +26,9 @@ public sealed class EndpointsPageTests
         try
         {
             using var ctx = new BunitTestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("./_content/BlazorBlueprint.Components/js/text-input.js");
+            ctx.Services.AddBlazorBlueprintComponents();
             ctx.Services.AddSingleton(new UiOptions { ProjectDir = dir, Port = 5050 });
             ctx.Services.AddSingleton<IEndpointCatalogService>(new EmptyCatalogService());
 
@@ -46,6 +50,9 @@ public sealed class EndpointsPageTests
         try
         {
             using var ctx = new BunitTestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("./_content/BlazorBlueprint.Components/js/text-input.js");
+            ctx.Services.AddBlazorBlueprintComponents();
             ctx.Services.AddSingleton(new UiOptions { ProjectDir = dir, Port = 5050 });
             ctx.Services.AddSingleton<IEndpointCatalogService>(new SeededCatalogService(
                 new EndpointCatalogSnapshot(
@@ -70,6 +77,9 @@ public sealed class EndpointsPageTests
         try
         {
             using var ctx = new BunitTestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("./_content/BlazorBlueprint.Components/js/text-input.js");
+            ctx.Services.AddBlazorBlueprintComponents();
             ctx.Services.AddSingleton(new UiOptions { ProjectDir = dir, Port = 5050 });
             ctx.Services.AddSingleton<IEndpointCatalogService>(new EmptyCatalogService());
 

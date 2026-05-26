@@ -4,12 +4,21 @@
 
 <PageTitle>AspireForm</PageTitle>
 
-<div style="padding: 1rem">
-    <h2>AspireForm — Entity Model Builder</h2>
-    <p>Project directory: <span class="kbd">@Options.ProjectDir</span></p>
-    <p>
-        <a href="/entities">Browse entities →</a>
-    </p>
+<div class="max-w-xl space-y-4">
+    <div>
+        <h1 class="text-2xl font-semibold tracking-tight">AspireForm</h1>
+        <p class="text-muted-foreground text-sm">Declarative construction and configuration of .NET Aspire applications.</p>
+    </div>
+
+    <BbCard>
+        <BbCardContent class="pt-6 space-y-2">
+            <p class="text-sm text-muted-foreground">Project directory</p>
+            <p class="font-mono text-sm bg-muted px-2 py-1 rounded">@Options.ProjectDir</p>
+        </BbCardContent>
+        <BbCardFooter>
+            <BbButton Variant="ButtonVariant.Default" href="/entities">Browse entities</BbButton>
+        </BbCardFooter>
+    </BbCard>
 </div>
 
 @code {

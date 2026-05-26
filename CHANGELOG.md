@@ -4,6 +4,48 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] — 2026-05-26
+
+### Added
+
+- **BlazorBlueprint component library** — all pages and components migrated from bespoke CSS to
+  [BlazorBlueprint.Components 3.10.2](https://github.com/blazorblueprint/blazorblueprint) (shadcn/ui
+  port for Blazor). Tailwind utility classes replace hand-written `site.css`; Blueprint CSS served
+  from `/_content/BlazorBlueprint.Components/blazorblueprint.css`.
+- **Multi-theme editor** — `aspireform ui /theme` redesigned as a full two-pane editor:
+  sidebar for listing, selecting, creating, duplicating, and deleting themes; detail panel for
+  activating, editing light/dark token buckets, adjusting border-radius, importing tweakcn JSON,
+  and exporting the current theme definition.
+- **`TokenBucketEditor`** sub-component — editable token table with live oklch color preview
+  swatches for all 19 shadcn/tweakcn token names.
+- `aspireform_theme_list` and `aspireform_theme_activate` MCP tools — agent-readable theme
+  listing and switching (registry grows from 40 to 42 tools).
+- `copyToClipboard()` JavaScript helper in `theme-interop.js` for theme export UX.
+- `AppSidebar`, `AppTopBar`, `ThemeSwitcherDropdown`, `DarkModeToggle` layout components —
+  persistent nav sidebar and top-bar header; theme switcher dropdown; dark-mode toggle.
+
+### Changed
+
+- `IThemeStore` rewritten from single-theme to multi-theme API: `ListAsync`, `GetAsync`,
+  `SaveAsync`, `DeleteAsync`, `DuplicateAsync`, `RenameAsync`, `GetActiveAsync`, `SetActiveAsync`,
+  `SetDarkModeAsync`, `ResetToDefaultsAsync`. Ships two built-in themes: "AspireForm Light" and
+  "AspireForm Dark".
+- `ThemeStore` now persists themes as individual JSON files under
+  `.aspireform/themes/<name>.json` with an `_active.json` manifest.
+- `ThemeTokenNames.All` replaces `ThemeDefaults.Tokens` — 19 standard shadcn/tweakcn token names.
+- `aspireform_theme_show` tool updated — returns full multi-theme JSON with `activeName`,
+  `darkMode`, `allThemes`, `tokens.light`, `tokens.dark`, and `radius` fields.
+- Layout components (`MainLayout`, pages, dialogs, entity/endpoint sub-components) fully
+  refactored to Blueprint components: `BbButton`, `BbCard`, `BbBadge`, `BbAlert`, `BbSeparator`,
+  `BbInput`, `BbTabs`, `BbDialog`, `BbDropdownMenu`.
+
+### Breaking
+
+- `IThemeStore`: old single-theme interface is replaced entirely. If you hold a reference to
+  `IThemeStore` (only relevant if you registered a custom implementation), implement the new
+  10-method interface.
+- `ThemeDefaults.Tokens` removed — use `ThemeTokenNames.All` instead.
+
 ## [0.8.0] — 2026-05-26
 
 ### Added

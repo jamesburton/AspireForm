@@ -3,10 +3,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AspireForm — Entity Model Builder</title>
+    <title>AspireForm</title>
     <base href="/" />
-    <link rel="stylesheet" href="site.css" />
+    <!-- Active theme CSS variables (served dynamically by /theme.css endpoint) -->
     <link id="af-theme" rel="stylesheet" href="/theme.css" />
+    <!-- Blueprint pre-built styles (Tailwind v4 + shadcn/ui primitives) -->
+    <link rel="stylesheet" href="_content/BlazorBlueprint.Components/blazorblueprint.css" />
+    <!-- AspireForm-specific overrides -->
+    <link rel="stylesheet" href="/app.css" />
     <HeadOutlet />
 </head>
 <body>
@@ -16,6 +20,5 @@
        the corresponding interactive upgrade ever wiring the event handlers. *@
     <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     <script src="_framework/blazor.web.js"></script>
-    <script src="/theme-interop.js"></script>
 </body>
 </html>

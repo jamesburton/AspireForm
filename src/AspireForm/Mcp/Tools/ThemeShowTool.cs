@@ -21,9 +21,8 @@ public sealed class ThemeShowTool : IToolHandler
 
     /// <inheritdoc />
     public string Description =>
-        "Returns the active AspireForm UI theme token map as a JSON object. " +
-        "Keys are token names (e.g. \"color-primary\"); values are hex color strings. " +
-        "Reads from .aspireform/theme.json in the project directory; returns defaults when no override file exists.";
+        "Returns the active AspireForm UI theme. " +
+        "Includes active theme name, dark-mode flag, all theme names, full token set (light + dark), and radius.";
 
     /// <inheritdoc />
     public JsonObject InputSchema => ToolBase.ObjectSchema(new Dictionary<string, JsonObject>
@@ -33,12 +32,21 @@ public sealed class ThemeShowTool : IToolHandler
 
     /// <inheritdoc />
     public Task<ToolResult> ExecuteAsync(JsonObject args, CancellationToken ct) =>
-        ToolBase.CatchKnownAsync(() =>
+        ToolBase.CatchKnownAsync(async () =>
         {
             var projectDir = ToolBase.ResolveProjectDir(args, _defaultProjectDir);
             var store = new ThemeStore(projectDir);
-            var tokens = store.GetTokens();
-            var json = JsonSerializer.Serialize(tokens, new JsonSerializerOptions { WriteIndented = true });
-            return Task.FromResult(ToolResult.Ok(json));
+            var activation = await store.GetActiveAsync(ct);
+            var theme = await store.GetAsync(activation.ActiveName, ct);
+            var themes = await store.ListAsync(ct);
+            var result = new
+            {
+                activeName = activation.ActiveName,
+                darkMode = activation.DarkMode,
+                allThemes = themes.Select(t => t.Name).ToArray(),
+                tokens = new { light = theme.Light, dark = theme.Dark },
+                radius = theme.Radius,
+            };
+            return ToolResult.Ok(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
         });
 }

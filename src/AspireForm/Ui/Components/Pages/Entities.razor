@@ -5,74 +5,75 @@
 
 <PageTitle>Entities — AspireForm</PageTitle>
 
-<div class="two-pane">
-    <aside class="sidebar">
-        <div class="sidebar-actions">
-            <input type="text" placeholder="Search entities..." @bind="Filter" @bind:event="oninput" style="width:100%" />
-        </div>
-        <div class="sidebar-actions">
-            <button @onclick="OpenNewEntity" style="width:100%">+ New Entity</button>
-        </div>
-        <div class="sidebar-list">
+<div class="af-two-pane">
+    @* Sidebar: search + new entity + list *@
+    <aside class="af-two-pane-sidebar flex flex-col gap-2 p-2 overflow-y-auto">
+        <BbInput Placeholder="Search entities…" @bind-Value="Filter" UpdateTiming="UpdateTiming.Immediate" class="w-full" />
+        <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" class="w-full" @onclick="() => ShowNewEntity = true">+ New Entity</BbButton>
+
+        <div class="space-y-0.5 mt-1">
             @foreach (var e in FilteredEntities.OrderBy(e => e.Name, StringComparer.Ordinal))
             {
-                <div class="sidebar-item @(Selected?.Name == e.Name ? "active" : "")" @onclick="() => Select(e)">@e.Name</div>
+                var eName = e.Name;
+                <button type="button"
+                        class="w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors hover:bg-accent hover:text-accent-foreground @(Selected?.Name == eName ? "bg-accent text-accent-foreground font-medium" : "text-foreground")"
+                        @onclick="() => Select(e)">@e.Name</button>
             }
             @if (FilteredEntities.Count == 0)
             {
-                <div class="sidebar-item muted">No entities</div>
+                <p class="px-3 py-2 text-sm text-muted-foreground">No entities</p>
             }
         </div>
     </aside>
-    <section class="detail">
+
+    @* Detail panel *@
+    <div class="af-two-pane-detail">
         @if (LoadError is not null)
         {
-            <div class="banner">@LoadError</div>
+            <BbAlert Variant="AlertVariant.Danger" class="mb-4">
+                <BbAlertDescription>@LoadError</BbAlertDescription>
+            </BbAlert>
         }
         @if (Selected is null)
         {
-            <div class="detail-body muted">Select an entity from the sidebar.</div>
+            <p class="text-muted-foreground text-sm">Select an entity from the sidebar.</p>
         }
         else
         {
             <EntityHeader Entity="@Selected" />
-            <div class="detail-tabs">
-                <div class="detail-tab @(ActiveTab == Tab.Properties ? "active" : "")" @onclick="() => ActiveTab = Tab.Properties">Properties (@Selected.Properties.Count)</div>
-                <div class="detail-tab @(ActiveTab == Tab.Relationships ? "active" : "")" @onclick="() => ActiveTab = Tab.Relationships">Relationships (@Selected.Relationships.Count)</div>
-                <div class="detail-tab @(ActiveTab == Tab.Attributes ? "active" : "")" @onclick="() => ActiveTab = Tab.Attributes">Attributes (@Selected.Attributes.Count)</div>
-                <div class="detail-tab @(ActiveTab == Tab.Dab ? "active" : "")" @onclick="() => ActiveTab = Tab.Dab">DAB exposure</div>
-            </div>
-            <div class="detail-body">
-                @switch (ActiveTab)
-                {
-                    case Tab.Properties:
-                        <EntityPropertiesTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
-                        break;
-                    case Tab.Relationships:
-                        <EntityRelationshipsTab Entity="@Selected" Entities="@(CatalogSnapshot?.Entities ?? [])" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
-                        break;
-                    case Tab.Attributes:
-                        <EntityAttributesTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
-                        break;
-                    case Tab.Dab:
-                        <EntityDabTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
-                        break;
-                }
-            </div>
+
+            <BbTabs @bind-Value="ActiveTab" class="mt-4">
+                <BbTabsList>
+                    <BbTabsTrigger Value="properties">Properties (@Selected.Properties.Count)</BbTabsTrigger>
+                    <BbTabsTrigger Value="relationships">Relationships (@Selected.Relationships.Count)</BbTabsTrigger>
+                    <BbTabsTrigger Value="attributes">Attributes (@Selected.Attributes.Count)</BbTabsTrigger>
+                    <BbTabsTrigger Value="dab">DAB exposure</BbTabsTrigger>
+                </BbTabsList>
+                <BbTabsContent Value="properties">
+                    <EntityPropertiesTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
+                </BbTabsContent>
+                <BbTabsContent Value="relationships">
+                    <EntityRelationshipsTab Entity="@Selected" Entities="@(CatalogSnapshot?.Entities ?? [])" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
+                </BbTabsContent>
+                <BbTabsContent Value="attributes">
+                    <EntityAttributesTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
+                </BbTabsContent>
+                <BbTabsContent Value="dab">
+                    <EntityDabTab Entity="@Selected" CsprojPath="@CsprojPath" OnMutated="ReloadAsync" />
+                </BbTabsContent>
+            </BbTabs>
         }
-    </section>
+    </div>
 </div>
 
 @if (ShowNewEntity)
 {
-    <NewEntityDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEntityDir" OnClose="CloseNewEntity" OnCreated="OnEntityCreatedAsync" />
+    <NewEntityDialog CsprojPath="@CsprojPath" DefaultDir="@DefaultEntityDir" OnClose="() => { ShowNewEntity = false; }" OnCreated="ReloadAsync" />
 }
 
 @code {
-    private enum Tab { Properties, Relationships, Attributes, Dab }
-
     private string Filter { get; set; } = "";
-    private Tab ActiveTab { get; set; } = Tab.Properties;
+    private string ActiveTab { get; set; } = "properties";
     private Entity? Selected { get; set; }
     private EntityCatalog? CatalogSnapshot { get; set; }
     private string? CsprojPath { get; set; }
@@ -113,13 +114,4 @@
     }
 
     private void Select(Entity e) => Selected = e;
-
-    private void OpenNewEntity()
-    {
-        Console.WriteLine($"[ui-diag] OpenNewEntity invoked; ShowNewEntity was {ShowNewEntity}, setting to true");
-        ShowNewEntity = true;
-    }
-
-    private void CloseNewEntity() => ShowNewEntity = false;
-    private async Task OnEntityCreatedAsync() { ShowNewEntity = false; await ReloadAsync(); }
 }

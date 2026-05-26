@@ -2,30 +2,55 @@
 
 @if (Entity is null || CsprojPath is null) { return; }
 
-<table class="entities">
-    <thead><tr><th>Name</th><th>Type</th><th>Null?</th><th>PK</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var p in Entity.Properties)
-        {
-            <tr>
-                <td><code>@p.Name</code></td>
-                <td><code>@p.ClrType</code></td>
-                <td>@(p.IsNullable ? "yes" : "no")</td>
-                <td>@(p.IsPrimaryKey ? "✓" : "")</td>
-                <td><button class="danger" @onclick="() => RemoveAsync(p.Name)">Remove</button></td>
-            </tr>
-        }
-    </tbody>
-</table>
-<p style="margin-top:.6rem"><button @onclick="() => ShowAdd = true">+ Add Property</button></p>
+<div class="space-y-3">
+    <BbCard>
+        <BbCardContent class="p-0">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b bg-muted/50 text-muted-foreground">
+                        <th class="px-4 py-2 text-left font-medium">Name</th>
+                        <th class="px-4 py-2 text-left font-medium">Type</th>
+                        <th class="px-4 py-2 text-left font-medium">Nullable</th>
+                        <th class="px-4 py-2 text-left font-medium">PK</th>
+                        <th class="px-4 py-2 w-20"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Entity.Properties)
+                    {
+                        var pName = p.Name;
+                        <tr class="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                            <td class="px-4 py-2 font-mono">@p.Name</td>
+                            <td class="px-4 py-2 font-mono text-muted-foreground">@p.ClrType</td>
+                            <td class="px-4 py-2">@(p.IsNullable ? "yes" : "—")</td>
+                            <td class="px-4 py-2">@(p.IsPrimaryKey ? "✓" : "—")</td>
+                            <td class="px-4 py-2 text-right">
+                                <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small"
+                                          class="text-destructive hover:text-destructive"
+                                          @onclick="() => RemoveAsync(pName)">Remove</BbButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </BbCardContent>
+    </BbCard>
+
+    <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" @onclick="() => ShowAdd = true">+ Add Property</BbButton>
+
+    @if (LastError is not null)
+    {
+        <BbAlert Variant="AlertVariant.Danger">
+            <BbAlertDescription>@LastError</BbAlertDescription>
+        </BbAlert>
+    }
+</div>
 
 @if (ShowAdd)
 {
     <AddPropertyDialog CsprojPath="@CsprojPath" EntityName="@Entity.Name"
         OnClose="() => { ShowAdd = false; }" OnAdded="AfterAddedAsync" />
 }
-
-@if (LastError is not null) { <div class="banner">@LastError</div> }
 
 @code {
     [Parameter] public Entity? Entity { get; set; }

@@ -5,38 +5,77 @@
 
 <PageTitle>Diagnostics — AspireForm</PageTitle>
 
-<div style="padding: 1rem">
-    <h2>Diagnostics</h2>
+<div class="space-y-4">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold tracking-tight">Diagnostics</h1>
+            <p class="text-muted-foreground text-sm">Roslyn workspace scan results.</p>
+        </div>
+        <BbButton Variant="ButtonVariant.Outline" Size="ButtonSize.Small" @onclick="ScanAsync"
+                  Disabled="@(LoadingState == State.Loading)">
+            @(LoadingState == State.Loading ? "Scanning…" : "Run scan")
+        </BbButton>
+    </div>
+
     @if (LoadingState == State.NotStarted)
     {
-        <p class="muted">No project scanned yet. <button @onclick="ScanAsync">Run scan</button></p>
+        <BbAlert Variant="AlertVariant.Default">
+            <BbAlertDescription>No project scanned yet. Click <strong>Run scan</strong> to start.</BbAlertDescription>
+        </BbAlert>
     }
     else if (LoadingState == State.Loading)
     {
-        <p class="muted">Scanning workspace... (first scan can take several seconds)</p>
+        <BbAlert Variant="AlertVariant.Default">
+            <BbAlertDescription>Scanning workspace… first scan can take several seconds.</BbAlertDescription>
+        </BbAlert>
     }
     else if (LoadError is not null)
     {
-        <div class="banner">@LoadError</div>
+        <BbAlert Variant="AlertVariant.Danger">
+            <BbAlertDescription>@LoadError</BbAlertDescription>
+        </BbAlert>
     }
     else if (Snapshot is null || Snapshot.Diagnostics.Count == 0)
     {
-        <p>No diagnostics — workspace loaded clean.</p>
-        <p class="muted">Last scan: @LastScanAt</p>
-        <p><button @onclick="ScanAsync">Re-scan</button></p>
+        <BbAlert Variant="AlertVariant.Default">
+            <BbAlertDescription>No diagnostics — workspace loaded clean.</BbAlertDescription>
+        </BbAlert>
+        @if (LastScanAt is not null)
+        {
+            <p class="text-xs text-muted-foreground">Last scan: @LastScanAt</p>
+        }
     }
     else
     {
-        <p class="muted">Last scan: @LastScanAt &nbsp;<button @onclick="ScanAsync">Re-scan</button></p>
-        <table class="entities">
-            <thead><tr><th>Severity</th><th>Message</th><th>File</th><th>Line</th></tr></thead>
-            <tbody>
-                @foreach (var d in Snapshot.Diagnostics)
-                {
-                    <tr><td>@d.Severity</td><td>@d.Message</td><td>@d.FilePath</td><td>@d.Line</td></tr>
-                }
-            </tbody>
-        </table>
+        @if (LastScanAt is not null)
+        {
+            <p class="text-xs text-muted-foreground">Last scan: @LastScanAt</p>
+        }
+        <BbCard>
+            <BbCardContent class="p-0">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b bg-muted/50 text-muted-foreground">
+                            <th class="px-4 py-2 text-left font-medium">Severity</th>
+                            <th class="px-4 py-2 text-left font-medium">Message</th>
+                            <th class="px-4 py-2 text-left font-medium">File</th>
+                            <th class="px-4 py-2 text-left font-medium w-16">Line</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Snapshot.Diagnostics)
+                        {
+                            <tr class="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                                <td class="px-4 py-2">@d.Severity</td>
+                                <td class="px-4 py-2">@d.Message</td>
+                                <td class="px-4 py-2 font-mono text-xs text-muted-foreground truncate max-w-xs">@d.FilePath</td>
+                                <td class="px-4 py-2 text-right">@d.Line</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </BbCardContent>
+        </BbCard>
     }
 </div>
 
