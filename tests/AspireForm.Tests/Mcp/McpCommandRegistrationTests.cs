@@ -10,7 +10,7 @@ public sealed class McpCommandRegistrationTests
     public void BuildRegistry_registers_14_verbs_3_macros_12_entity_tools_total_29()
     {
         var r = McpCommand.BuildRegistry(".");
-        r.All.Count.Should().Be(29);
+        r.All.Count.Should().Be(30); // 14 low-level + 12 entity + 3 macros + 1 theme = 30
 
         string[] expectedLowLevel =
         [

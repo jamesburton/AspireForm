@@ -1,5 +1,4 @@
 using AspireForm.Ui.Theme;
-using AspireForm.Ui.Components.Pages;
 using AwesomeAssertions;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +7,9 @@ using Xunit;
 
 // Alias to avoid ambiguity with xunit.v3's static Xunit.TestContext.
 using BunitTestContext = Bunit.TestContext;
+
+// Alias because 'Theme' is ambiguous with the 'AspireForm.Ui.Theme' namespace.
+using ThemePage = AspireForm.Ui.Components.Pages.Theme;
 
 namespace AspireForm.Tests.Ui.Theme;
 
@@ -32,7 +34,7 @@ public sealed class ThemePageTests
         ctx.Services.AddSingleton<IThemeStore>(new FakeThemeStore());
         ctx.Services.AddSingleton<IJSRuntime>(new BunitJSInterop().JSRuntime);
 
-        var cut = ctx.RenderComponent<Theme>();
+        var cut = ctx.RenderComponent<ThemePage>();
         cut.Markup.Should().Contain("Theme Editor");
         cut.Markup.Should().Contain("theme.json");
     }
