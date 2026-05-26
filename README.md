@@ -9,11 +9,12 @@ reconciles that against what is on disk and applies the difference.
 
 ## Status
 
-v0.8.0 — API endpoint builder. AspireForm now includes a code-first Minimal API endpoint builder:
-`[ApiEndpoint]` attributes on handler methods are scanned via Roslyn, exposed through 10 MCP tools,
-editable in the `aspireform ui` `/endpoints` page, and emitted to `_Endpoints.g.cs` by the built-in
-`api-endpoints` module provider. `AspireForm.Annotations 0.2.0` adds the four endpoint attributes.
-Theme Editor (v0.7.0) also available at `aspireform ui` `/theme`.
+v1.0.0 — UI polish + BlazorBlueprint adoption. All pages and components have been migrated to the
+[BlazorBlueprint](https://github.com/blazorblueprint/blazorblueprint) shadcn/ui component library
+(Tailwind-based, Apache 2.0). The theme editor is now a full multi-theme manager: create, edit,
+duplicate, import/export, and switch between named themes with live token editing for light and dark
+token buckets. Two new MCP tools (`aspireform_theme_list`, `aspireform_theme_activate`) bring the
+registry to 42 tools.
 
 ## Install / run
 
@@ -79,6 +80,9 @@ Add to `~/.claude/mcp.json` (or the project-scoped equivalent):
 **10 endpoint tools** drive code-first Minimal API endpoint authoring:
 `aspireform_endpoint_{list,show,emit,create,delete}`, `aspireform_endpoint_parameter_{add,remove}`, `aspireform_endpoint_auth_set`, `aspireform_endpoint_attribute_{set,clear}`.
 
+**3 theme tools** manage the UI theme:
+`aspireform_theme_show`, `aspireform_theme_list`, `aspireform_theme_activate`.
+
 **3 curated macros** orchestrate common recipes:
 `scaffold_aspire_app_with_data`, `add_cache_layer`, `add_authentication`.
 
@@ -124,15 +128,29 @@ When the `ef-data` block in your `aspireform.yaml` points at this project (`inpu
 
 ## Use the theme editor
 
-`aspireform ui` includes a **Theme** tab where you can adjust the color tokens that govern the
-AspireForm UI shell. Changes are saved to `.aspireform/theme.json` in your project directory and
-take effect immediately (no page reload required).
+`aspireform ui` includes a **Theme** page (`/theme`) — a full multi-theme manager:
+
+- **Sidebar** — lists all themes; select, create (New / Duplicate), and delete themes.
+- **Detail panel** — activate a theme, adjust border-radius, edit all 19 light and dark token
+  buckets (oklch values with live color-swatch preview), import from
+  [tweakcn](https://tweakcn.com/) JSON, and export the current definition.
+- **Reset to defaults** — reinstalls the built-in "AspireForm Light" and "AspireForm Dark"
+  themes and resets the active selection.
+
+Themes are stored as individual files under `.aspireform/themes/` in your project directory.
+Changes take effect immediately via live CSS injection (no page reload required).
 
 ```bash
 aspireform ui           # then navigate to http://localhost:5050/theme
 ```
 
-The token map can also be read by an agent via the `aspireform_theme_show` MCP tool.
+Agents can list and switch themes via MCP:
+
+```
+aspireform_theme_list       # returns all themes with active marker
+aspireform_theme_activate   # sets the active theme by name
+aspireform_theme_show       # returns the full active theme (tokens, radius, dark mode)
+```
 
 > **Scope:** The theme editor styles the AspireForm UI shell only. It does not modify your
 > project's own CSS or scaffold any code into your Aspire solution.
