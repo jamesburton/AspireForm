@@ -1,3 +1,5 @@
+using AspireForm.Providers.ApiEndpoints;
+
 namespace AspireForm.Providers;
 
 /// <summary>Raised when a config block references a provider type that is not registered.</summary>
@@ -28,9 +30,9 @@ public sealed class ProviderRegistry
         }
     }
 
-    /// <summary>Returns the registry containing the v1 built-in providers (<c>sqlserver</c> and <c>ef-data</c>).</summary>
+    /// <summary>Returns the registry containing the v1 built-in providers (<c>sqlserver</c>, <c>ef-data</c>, and <c>api-endpoints</c>).</summary>
     public static ProviderRegistry Default() =>
-        new([new SqlServerResourceProvider(), new EfDataModuleProvider()]);
+        new([new SqlServerResourceProvider(), new EfDataModuleProvider(), new ApiEndpointsModuleProvider()]);
 
     /// <summary>Returns the provider for <paramref name="type"/>, or throws <see cref="ProviderNotFoundException"/>.</summary>
     public IProvider Get(string type) =>
