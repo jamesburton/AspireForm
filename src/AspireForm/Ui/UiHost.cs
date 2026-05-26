@@ -5,7 +5,6 @@ using AspireForm.Ui.Theme;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 
 namespace AspireForm.Ui;
@@ -16,7 +15,14 @@ internal static class UiHost
     /// <summary>Runs the host until <paramref name="ct"/> fires or Ctrl-C is received.</summary>
     public static async Task RunAsync(UiOptions opts, CancellationToken ct)
     {
-        var builder = WebApplication.CreateBuilder();
+        // Force ApplicationName to this assembly so MapStaticAssets() locates
+        // AspireForm.staticwebassets.endpoints.json regardless of which host process
+        // (production exe, or AspireForm.Tests when running smoke tests) is running.
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            ApplicationName = typeof(UiHost).Assembly.GetName().Name,
+            ContentRootPath = Path.GetDirectoryName(typeof(UiHost).Assembly.Location),
+        });
         builder.WebHost.UseKestrel(k => k.ListenLocalhost(opts.Port));
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.AddSingleton<IEntityCatalogService>(_ => new RoslynEntityCatalogService());
@@ -25,15 +31,13 @@ internal static class UiHost
         builder.Services.AddSingleton<IThemeStore>(_ => new ThemeStore(opts.ProjectDir));
         builder.Logging.ClearProviders(); // keep stdout clean for dnx users
 
-        // Serve embedded wwwroot files. With <FrameworkReference Microsoft.AspNetCore.App />, Blazor's
-        // static file infrastructure handles framework assets (blazor.web.js, etc.); we only need to
-        // map our own site.css from the source-controlled wwwroot/.
-        var wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
         var app = builder.Build();
-        if (Directory.Exists(wwwroot))
-        {
-            app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(wwwroot) });
-        }
+
+        // MapStaticAssets serves both the project's wwwroot/ AND the Blazor framework assets
+        // (_framework/blazor.web.js, etc.) via the static-assets manifest produced by the Web SDK.
+        // UseStaticFiles alone does NOT serve framework assets — the interactive circuit will fail
+        // to bootstrap without MapStaticAssets.
+        app.MapStaticAssets();
         app.UseAntiforgery();
 
         // Serve the active theme tokens as CSS custom properties.
