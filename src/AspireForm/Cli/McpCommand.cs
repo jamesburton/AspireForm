@@ -90,6 +90,9 @@ public sealed class McpCommand : AsyncCommand<McpCommand.Settings>
         r.Register(new AddCacheLayerTool(projectDir));
         r.Register(new AddAuthenticationTool(projectDir));
 
+        // Theme tools (#5.1) — 1 read-only tool.
+        r.Register(new ThemeShowTool(projectDir));
+
         return r;
     }
 }
