@@ -1,5 +1,6 @@
 using AspireForm.EntityCatalog;
 using AspireForm.Ui.Components;
+using AspireForm.Ui.Theme;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,7 @@ internal static class UiHost
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.AddSingleton<IEntityCatalogService>(_ => new RoslynEntityCatalogService());
         builder.Services.AddSingleton(opts);
+        builder.Services.AddSingleton<IThemeStore>(_ => new ThemeStore(opts.ProjectDir));
         builder.Logging.ClearProviders(); // keep stdout clean for dnx users
 
         // Serve embedded wwwroot files. With <FrameworkReference Microsoft.AspNetCore.App />, Blazor's
@@ -31,6 +33,19 @@ internal static class UiHost
             app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(wwwroot) });
         }
         app.UseAntiforgery();
+
+        // Serve the active theme tokens as CSS custom properties.
+        app.MapGet("/theme.css", (IThemeStore themeStore) =>
+        {
+            var tokens = themeStore.GetTokens();
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(":root {");
+            foreach (var kv in tokens)
+                sb.AppendLine($"  --af-{kv.Key}: {kv.Value};");
+            sb.AppendLine("}");
+            return Results.Content(sb.ToString(), "text/css");
+        });
+
         app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         var url = $"http://localhost:{opts.Port}";
