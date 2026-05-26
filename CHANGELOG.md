@@ -4,6 +4,18 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-05-26
+
+### Added
+- **API endpoint builder** — code-first Minimal API authoring powered by Roslyn.
+  - `AspireForm.Annotations 0.2.0` adds four new attributes: `[ApiEndpoint(route, method)]`, `[ApiAuth(policy)]`, `[ApiTag(tag)]`, `[ApiSummary(text)]`.
+  - `RoslynEndpointScanner` walks `MSBuildWorkspace` semantic model to discover all `[ApiEndpoint]`-decorated methods; extracts route parameters (including constraints and optional markers), auth policy, tags, summary, and method-level attributes.
+  - `RoslynEndpointMutator` applies `EndpointChangeRequest` DSL mutations (`CreateEndpoint`, `DeleteEndpoint`, `AddParameter`, `RemoveParameter`, `SetEndpointAttribute`, `ClearEndpointAttribute`, `SetAuthPolicy`) using Roslyn syntax rewriting with transactional file writes. Expression-bodied methods are rejected with a clear diagnostic (V1 constraint).
+  - `EndpointEmitter` renders `_Endpoints.g.cs` with a `MapAspireFormEndpoints` extension method using fluent Minimal API chaining.
+  - Built-in `api-endpoints` module provider registered in `ProviderRegistry.Default()`. Accepts `inputs.projectPath`; emits the generated file as `OwnershipMode.Managed`.
+  - 10 new MCP endpoint tools (registry grows from 29 to 39): `aspireform_endpoint_{list,show,emit,create,delete}`, `aspireform_endpoint_parameter_{add,remove}`, `aspireform_endpoint_auth_set`, `aspireform_endpoint_attribute_{set,clear}`.
+  - `/endpoints` page in `aspireform ui`: sidebar with search and "+ New Endpoint", detail pane with Parameters / Auth / Attributes tabs. `NewEndpointDialog` modal for create flow.
+
 ## [0.5.0] - 2026-05-25
 
 ### Added

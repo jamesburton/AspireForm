@@ -9,9 +9,10 @@ reconciles that against what is on disk and applies the difference.
 
 ## Status
 
-v0.3.0 — Plugin loader. AspireForm now supports external NuGet plugins; the first one
-(`AspireForm.Plugin.Redis`) is available. More verticals (Mailpit, Hangfire, DAB, auth × 3,
-reporting, ETL) arrive in Plans 2.1–2.9.
+v0.6.0 — API endpoint builder. AspireForm now includes a code-first Minimal API endpoint builder:
+`[ApiEndpoint]` attributes on handler methods are scanned via Roslyn, exposed through 10 MCP tools,
+editable in the `aspireform ui` `/endpoints` page, and emitted to `_Endpoints.g.cs` by the built-in
+`api-endpoints` module provider. `AspireForm.Annotations 0.2.0` adds the four endpoint attributes.
 
 ## Install / run
 
@@ -71,6 +72,12 @@ Add to `~/.claude/mcp.json` (or the project-scoped equivalent):
 **14 low-level tools** mirror the CLI verbs:
 `aspireform_new`, `aspireform_add`, `aspireform_config`, `aspireform_plan`, `aspireform_apply`, `aspireform_destroy`, `aspireform_import`, `aspireform_state_list`, `aspireform_state_show`, `aspireform_doctor`, `aspireform_plugin_list`, `aspireform_plugin_install`, `aspireform_plugin_update`, `aspireform_plugin_remove`.
 
+**12 entity tools** drive code-first EF Core entity authoring:
+`aspireform_entity_{list,show,create,delete}`, `aspireform_property_{add,remove,rename}`, `aspireform_attribute_{set,clear}`, `aspireform_relationship_{add,remove}`, `aspireform_dbcontext_list`.
+
+**10 endpoint tools** drive code-first Minimal API endpoint authoring:
+`aspireform_endpoint_{list,show,emit,create,delete}`, `aspireform_endpoint_parameter_{add,remove}`, `aspireform_endpoint_auth_set`, `aspireform_endpoint_attribute_{set,clear}`.
+
 **3 curated macros** orchestrate common recipes:
 `scaffold_aspire_app_with_data`, `add_cache_layer`, `add_authentication`.
 
@@ -110,9 +117,53 @@ When the `ef-data` block in your `aspireform.yaml` points at this project (`inpu
 
 ### Entity-level MCP tools
 
-12 new MCP tools (registered alongside the existing 17) cover full CRUD: `aspireform_entity_{list,show,create,delete}`, `aspireform_property_{add,remove,rename}`, `aspireform_attribute_{set,clear}`, `aspireform_relationship_{add,remove}`, `aspireform_dbcontext_list`.
+12 MCP tools cover full CRUD: `aspireform_entity_{list,show,create,delete}`, `aspireform_property_{add,remove,rename}`, `aspireform_attribute_{set,clear}`, `aspireform_relationship_{add,remove}`, `aspireform_dbcontext_list`.
 
 > **Security:** the UI binds localhost only and has no authentication. Dev-tool use only.
+
+## Use the API builder
+
+`aspireform ui` also includes an `/endpoints` page where you browse and edit Minimal API endpoints
+defined in your Web project. The page discovers all methods decorated with `[ApiEndpoint]` via
+Roslyn and lets you inspect route parameters, set auth policies, and manage method-level attributes.
+
+### Code-first API authoring
+
+Reference the `AspireForm.Annotations` package from your Web project, then decorate handler methods:
+
+```csharp
+using AspireForm.Annotations;
+
+public class BooksHandler
+{
+    [ApiEndpoint("/books", "GET")]
+    [ApiSummary("Return all books")]
+    [ApiAuth("authenticated")]
+    [ApiTag("Books")]
+    public static IResult GetBooks() => Results.Ok(new[] { "Dune", "Foundation" });
+
+    [ApiEndpoint("/books/{id:int}", "GET")]
+    public static IResult GetBook(int id) => Results.Ok(new { id });
+}
+```
+
+When the `api-endpoints` block in your `aspireform.yaml` points at this project, `aspireform plan`
+emits `_Endpoints.g.cs` with a `MapAspireFormEndpoints` extension method that wires every decorated
+handler into the Minimal API pipeline:
+
+```yaml
+modules:
+  api:
+    type: api-endpoints
+    inputs:
+      projectPath: ./MyWebApp
+```
+
+### API endpoint MCP tools
+
+10 MCP tools let agents drive the endpoint catalog: `aspireform_endpoint_{list,show,emit,create,delete}`,
+`aspireform_endpoint_parameter_{add,remove}`, `aspireform_endpoint_auth_set`,
+`aspireform_endpoint_attribute_{set,clear}`.
 
 ## Configuration
 
