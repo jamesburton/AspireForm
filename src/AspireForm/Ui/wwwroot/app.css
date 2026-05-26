@@ -1,0 +1,26 @@
+/* app.css — AspireForm-specific overrides on top of Blueprint */
+
+/* Ensure the sidebar never wraps its nav items */
+.af-sidebar-nav a {
+    white-space: nowrap;
+}
+
+/* Two-pane layout used by Entities + Endpoints pages */
+.af-two-pane {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+}
+
+.af-two-pane-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.af-two-pane-detail {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}

@@ -22,6 +22,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>aspire;dotnet-aspire;iac;terraform;scaffolding;dnx-tool</PackageTags>
+    <!-- Worktree .git is non-standard; disable git source control queries to prevent build errors. -->
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
 
   <ItemGroup>
