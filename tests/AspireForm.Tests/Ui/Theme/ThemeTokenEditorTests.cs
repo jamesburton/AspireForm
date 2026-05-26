@@ -23,11 +23,10 @@ public sealed class TokenBucketEditorTests
         ctx.JSInterop.SetupModule("./_content/BlazorBlueprint.Components/js/text-input.js");
         ctx.Services.AddBlazorBlueprintComponents();
         var tokens = MakeTokens();
-        bool saved = false;
 
         var cut = ctx.RenderComponent<TokenBucketEditor>(p => p
             .Add(c => c.Tokens, tokens)
-            .Add(c => c.OnSave, () => { saved = true; return Task.CompletedTask; }));
+            .Add(c => c.OnSave, () => Task.CompletedTask));
 
         // Each token name should appear as a CSS var label.
         cut.Markup.Should().Contain("--background");
