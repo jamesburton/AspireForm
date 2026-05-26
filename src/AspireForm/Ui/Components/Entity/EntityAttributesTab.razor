@@ -2,25 +2,49 @@
 
 @if (Entity is null || CsprojPath is null) { return; }
 
-<table class="entities">
-    <thead><tr><th>Attribute</th><th>Args</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var a in Entity.Attributes)
-        {
-            <tr>
-                <td><code>@a.FullTypeName</code></td>
-                <td><code>@FormatArgs(a)</code></td>
-                <td><button class="danger" @onclick="() => ClearAsync(a.FullTypeName)">Clear</button></td>
-            </tr>
-        }
-        @if (Entity.Attributes.Count == 0)
-        {
-            <tr><td colspan="3" class="muted">No class-level attributes.</td></tr>
-        }
-    </tbody>
-</table>
+<div class="space-y-3">
+    <BbCard>
+        <BbCardContent class="p-0">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b bg-muted/50 text-muted-foreground">
+                        <th class="px-4 py-2 text-left font-medium">Attribute</th>
+                        <th class="px-4 py-2 text-left font-medium">Args</th>
+                        <th class="px-4 py-2 w-20"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Entity.Attributes)
+                    {
+                        var aTypeName = a.FullTypeName;
+                        <tr class="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                            <td class="px-4 py-2 font-mono text-xs">@a.FullTypeName</td>
+                            <td class="px-4 py-2 font-mono text-xs text-muted-foreground">@FormatArgs(a)</td>
+                            <td class="px-4 py-2 text-right">
+                                <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small"
+                                          class="text-destructive hover:text-destructive"
+                                          @onclick="() => ClearAsync(aTypeName)">Clear</BbButton>
+                            </td>
+                        </tr>
+                    }
+                    @if (Entity.Attributes.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="3" class="px-4 py-3 text-center text-sm text-muted-foreground">No class-level attributes.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </BbCardContent>
+    </BbCard>
 
-@if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
+    @if (LastError is not null)
+    {
+        <BbAlert Variant="AlertVariant.Danger">
+            <BbAlertDescription>@LastError</BbAlertDescription>
+        </BbAlert>
+    }
+</div>
 
 @code {
     [Parameter] public Entity? Entity { get; set; }

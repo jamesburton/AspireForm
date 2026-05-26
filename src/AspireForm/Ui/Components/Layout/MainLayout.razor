@@ -1,18 +1,16 @@
+@* MainLayout — root shell: sidebar + top bar + main content area. BbPortalHost required for Blueprint overlays. *@
 @inherits LayoutComponentBase
 
-<div class="layout">
-    <header class="topbar">
-        <strong>AspireForm</strong>
-        <span class="topbar-sub">Entity Model Builder</span>
-        <nav class="topbar-nav">
-            <a href="/entities">Entities</a>
-            <a href="/endpoints">Endpoints</a>
-            <a href="/diagnostics">Diagnostics</a>
-            <a href="/theme">Theme</a>
-            <a href="/about">About</a>
-        </nav>
-    </header>
-    <main class="content">
-        @Body
-    </main>
+<div class="flex h-screen overflow-hidden bg-background text-foreground">
+    <AppSidebar />
+
+    <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <AppTopBar />
+
+        <main class="flex-1 overflow-y-auto p-6">
+            @Body
+        </main>
+    </div>
 </div>
+
+<BbPortalHost />

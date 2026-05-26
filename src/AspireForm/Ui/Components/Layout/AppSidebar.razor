@@ -1,0 +1,20 @@
+@* AppSidebar — persistent left navigation sidebar. *@
+
+<aside class="h-screen w-56 flex flex-col border-r bg-card shrink-0 overflow-hidden">
+    <div class="p-4 border-b">
+        <span class="font-semibold text-foreground">AspireForm</span>
+        <BbBadge class="ml-2 text-xs" Variant="BadgeVariant.Secondary">v1.0</BbBadge>
+    </div>
+
+    <nav class="flex-1 p-2 space-y-1 af-sidebar-nav overflow-y-auto">
+        <SidebarNavItem Href="/" Label="Home" />
+        <SidebarNavItem Href="/entities" Label="Entities" />
+        <SidebarNavItem Href="/endpoints" Label="Endpoints" />
+        <SidebarNavItem Href="/theme" Label="Theme" />
+        <SidebarNavItem Href="/diagnostics" Label="Diagnostics" />
+    </nav>
+
+    <div class="p-2 border-t">
+        <SidebarNavItem Href="/about" Label="About" />
+    </div>
+</aside>

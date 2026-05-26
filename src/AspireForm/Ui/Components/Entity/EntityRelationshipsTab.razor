@@ -2,49 +2,81 @@
 
 @if (Entity is null || CsprojPath is null) { return; }
 
-<table class="entities">
-    <thead><tr><th>Navigation</th><th>Target</th><th>Cardinality</th><th>FK</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var r in Entity.Relationships)
-        {
-            <tr>
-                <td><code>@r.Name</code></td>
-                <td><code>@r.TargetEntity</code></td>
-                <td>@r.Cardinality</td>
-                <td>@(r.ForeignKeyProperty ?? "(convention)")</td>
-                <td><button class="danger" @onclick="() => RemoveAsync(r.Name)">Remove</button></td>
-            </tr>
-        }
-        @if (Entity.Relationships.Count == 0)
-        {
-            <tr><td colspan="5" class="muted">No relationships defined.</td></tr>
-        }
-    </tbody>
-</table>
+<div class="space-y-3">
+    <BbCard>
+        <BbCardContent class="p-0">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b bg-muted/50 text-muted-foreground">
+                        <th class="px-4 py-2 text-left font-medium">Navigation</th>
+                        <th class="px-4 py-2 text-left font-medium">Target</th>
+                        <th class="px-4 py-2 text-left font-medium">Cardinality</th>
+                        <th class="px-4 py-2 text-left font-medium">FK</th>
+                        <th class="px-4 py-2 w-20"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rel in Entity.Relationships)
+                    {
+                        var relName = rel.Name;
+                        <tr class="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                            <td class="px-4 py-2 font-mono">@rel.Name</td>
+                            <td class="px-4 py-2 font-mono text-muted-foreground">@rel.TargetEntity</td>
+                            <td class="px-4 py-2">@rel.Cardinality</td>
+                            <td class="px-4 py-2 text-muted-foreground">@(rel.ForeignKeyProperty ?? "(convention)")</td>
+                            <td class="px-4 py-2 text-right">
+                                <BbButton Variant="ButtonVariant.Ghost" Size="ButtonSize.Small"
+                                          class="text-destructive hover:text-destructive"
+                                          @onclick="() => RemoveAsync(relName)">Remove</BbButton>
+                            </td>
+                        </tr>
+                    }
+                    @if (Entity.Relationships.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="px-4 py-3 text-center text-sm text-muted-foreground">No relationships defined.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </BbCardContent>
+    </BbCard>
 
-<fieldset style="margin-top: .8rem; padding: .5rem .8rem; border: 1px solid #eee">
-    <legend>Add relationship</legend>
-    <div style="display:flex; gap: .5rem; align-items: center; flex-wrap: wrap">
-        <label>To entity:
-            <select @bind="NewTo">
-                <option value="">— select —</option>
-                @foreach (var e in (Entities ?? []).Where(e => e.Name != Entity.Name).OrderBy(e => e.Name, StringComparer.Ordinal))
-                {
-                    <option value="@e.Name">@e.Name</option>
-                }
-            </select>
-        </label>
-        <label>Cardinality:
-            <select @bind="NewCardinality">
-                <option value="OneToOne">OneToOne</option>
-                <option value="OneToMany">OneToMany</option>
-                <option value="ManyToOne">ManyToOne</option>
-            </select>
-        </label>
-        <button @onclick="AddAsync">Add</button>
-    </div>
-    @if (LastError is not null) { <div class="banner" style="margin-top:.5rem">@LastError</div> }
-</fieldset>
+    <BbCard>
+        <BbCardHeader>
+            <BbCardTitle>Add relationship</BbCardTitle>
+        </BbCardHeader>
+        <BbCardContent class="flex flex-wrap gap-3 items-end">
+            <div class="grid gap-1.5">
+                <label class="text-sm font-medium">To entity</label>
+                <select class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" @bind="NewTo">
+                    <option value="">— select —</option>
+                    @foreach (var e in (Entities ?? []).Where(e => e.Name != Entity.Name).OrderBy(e => e.Name, StringComparer.Ordinal))
+                    {
+                        <option value="@e.Name">@e.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-medium">Cardinality</label>
+                <select class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" @bind="NewCardinality">
+                    <option value="OneToOne">OneToOne</option>
+                    <option value="OneToMany">OneToMany</option>
+                    <option value="ManyToOne">ManyToOne</option>
+                </select>
+            </div>
+            <BbButton Variant="ButtonVariant.Default" Size="ButtonSize.Small" @onclick="AddAsync">Add</BbButton>
+        </BbCardContent>
+        @if (LastError is not null)
+        {
+            <BbCardContent class="pt-0">
+                <BbAlert Variant="AlertVariant.Danger">
+                    <BbAlertDescription>@LastError</BbAlertDescription>
+                </BbAlert>
+            </BbCardContent>
+        }
+    </BbCard>
+</div>
 
 @code {
     [Parameter] public Entity? Entity { get; set; }
