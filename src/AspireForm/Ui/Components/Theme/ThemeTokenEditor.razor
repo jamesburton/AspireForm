@@ -1,0 +1,98 @@
+@inject IThemeStore ThemeStore
+@inject IJSRuntime JS
+
+<table class="entities" style="max-width: 640px;">
+    <thead>
+        <tr>
+            <th>Token</th>
+            <th>Color</th>
+            <th>Value</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var token in ThemeDefaults.Tokens)
+        {
+            var name = token.Name;
+            var current = _values.TryGetValue(name, out var v) ? v : token.DefaultValue;
+            <tr>
+                <td title="@token.CssVar">@token.Label</td>
+                <td>
+                    <input type="color" value="@current"
+                           @onchange="e => OnColorChange(name, e.Value?.ToString() ?? current)" />
+                </td>
+                <td>
+                    <input type="text" value="@current" style="width: 90px; font-family: monospace;"
+                           @onchange="e => OnTextChange(name, e.Value?.ToString() ?? current)" />
+                </td>
+                <td>
+                    @if (_values.ContainsKey(name))
+                    {
+                        <button @onclick="() => ResetToken(name)" title="Reset to default">&#8635;</button>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (_errorMessage is not null)
+{
+    <div class="banner" style="margin-top: .5rem;">@_errorMessage</div>
+}
+
+@code {
+    private Dictionary<string, string> _values = [];
+    private string? _errorMessage;
+
+    /* Valid 6-digit hex color pattern. */
+    private static readonly System.Text.RegularExpressions.Regex HexColor =
+        new(@"^#[0-9a-fA-F]{6}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    protected override void OnInitialized()
+    {
+        var all = ThemeStore.GetTokens();
+        var defaults = ThemeDefaults.Tokens.ToDictionary(t => t.Name, t => t.DefaultValue);
+
+        // Only store values that differ from defaults.
+        foreach (var kv in all)
+        {
+            if (defaults.TryGetValue(kv.Key, out var def) && kv.Value != def)
+                _values[kv.Key] = kv.Value;
+        }
+    }
+
+    private async Task OnColorChange(string name, string value)
+    {
+        if (!HexColor.IsMatch(value)) return; // color picker always gives valid hex — safety guard
+        await SaveAsync(name, value);
+    }
+
+    private async Task OnTextChange(string name, string value)
+    {
+        if (!HexColor.IsMatch(value))
+        {
+            _errorMessage = $"Invalid color value '{value}'. Use 6-digit hex (e.g. #1a73e8).";
+            return;
+        }
+
+        _errorMessage = null;
+        await SaveAsync(name, value);
+    }
+
+    private async Task SaveAsync(string name, string value)
+    {
+        await ThemeStore.SaveTokenAsync(name, value);
+        _values[name] = value;
+        await JS.InvokeVoidAsync("afTheme.reload");
+    }
+
+    private async Task ResetToken(string name)
+    {
+        var def = ThemeDefaults.Tokens.First(t => t.Name == name).DefaultValue;
+        await ThemeStore.SaveTokenAsync(name, def);
+        _values.Remove(name);
+        _errorMessage = null;
+        await JS.InvokeVoidAsync("afTheme.reload");
+    }
+}
