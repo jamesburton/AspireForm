@@ -25,7 +25,7 @@ public sealed class PlanToolTests
         try
         {
             var tool = new PlanTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeFalse();
             result.Content[0].Text.Should().NotBeNullOrEmpty();
         }
@@ -43,7 +43,7 @@ public sealed class PlanToolTests
         try
         {
             var tool = new PlanTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeTrue();
         }
         finally

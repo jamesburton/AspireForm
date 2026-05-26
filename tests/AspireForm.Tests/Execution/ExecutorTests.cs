@@ -52,7 +52,7 @@ public sealed class ExecutorTests : IDisposable
 
         var result = await executor.ApplyAsync(
             plan, model, prevState: new AspireFormState(), projectDir: _dir,
-            options: new ExecuteOptions { AutoApprove = true });
+            options: new ExecuteOptions { AutoApprove = true }, TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         result.BlocksApplied.Should().Be(1);
@@ -92,12 +92,12 @@ public sealed class ExecutorTests : IDisposable
         var executor = new Executor(new FakeAspireCli(), new StateStore());
 
         var refused = await executor.ApplyAsync(plan, model, priorState, _dir,
-            new ExecuteOptions { AutoApprove = true, ForceDrift = false });
+            new ExecuteOptions { AutoApprove = true, ForceDrift = false }, TestContext.Current.CancellationToken);
         refused.Success.Should().BeFalse();
         refused.FailureMessage.Should().Contain("drift");
 
         var forced = await executor.ApplyAsync(plan, model, priorState, _dir,
-            new ExecuteOptions { AutoApprove = true, ForceDrift = true });
+            new ExecuteOptions { AutoApprove = true, ForceDrift = true }, TestContext.Current.CancellationToken);
         forced.Success.Should().BeTrue();
     }
 
@@ -110,7 +110,7 @@ public sealed class ExecutorTests : IDisposable
         var plan = PlanFor(model, new AspireFormState());
 
         var result = await executor.ApplyAsync(plan, model, new AspireFormState(), _dir,
-            new ExecuteOptions { AutoApprove = true });
+            new ExecuteOptions { AutoApprove = true }, TestContext.Current.CancellationToken);
 
         result.Success.Should().BeFalse();
         result.BlocksApplied.Should().Be(0);
@@ -139,7 +139,7 @@ public sealed class ExecutorTests : IDisposable
 
         var executor = new Executor(new FakeAspireCli(), new StateStore());
         var result = await executor.ApplyAsync(plan, emptyModel, priorState, _dir,
-            new ExecuteOptions { AutoApprove = true });
+            new ExecuteOptions { AutoApprove = true }, TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         File.Exists(apphostPath).Should().BeFalse();

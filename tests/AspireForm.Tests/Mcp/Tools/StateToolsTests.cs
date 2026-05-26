@@ -33,7 +33,7 @@ public sealed class StateToolsTests
         try
         {
             var tool = new StateListTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeFalse();
             result.Content[0].Text.Should().Contain("No tracked blocks");
         }
@@ -51,7 +51,7 @@ public sealed class StateToolsTests
         try
         {
             var tool = new StateShowTool(dir);
-            var result = await tool.ExecuteAsync(new JsonObject { ["block"] = "missing" }, default);
+            var result = await tool.ExecuteAsync(new JsonObject { ["block"] = "missing" }, TestContext.Current.CancellationToken);
             result.IsError.Should().BeTrue();
             result.Content[0].Text.Should().Contain("is not tracked");
         }

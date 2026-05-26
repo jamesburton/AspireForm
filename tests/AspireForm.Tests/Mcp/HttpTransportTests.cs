@@ -44,10 +44,10 @@ public sealed class HttpTransportTests
             using var http = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
             var body = """{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo","arguments":{"text":"hi"}}}""";
             var resp = await http.PostAsync("/mcp/messages",
-                new StringContent(body, Encoding.UTF8, "application/json"));
+                new StringContent(body, Encoding.UTF8, "application/json"), TestContext.Current.CancellationToken);
 
             resp.IsSuccessStatusCode.Should().BeTrue();
-            var text = await resp.Content.ReadAsStringAsync();
+            var text = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             var node = JsonNode.Parse(text) as JsonObject;
             node!["result"]!["content"]![0]!["text"]!.GetValue<string>().Should().Be("hi");
         }
@@ -71,7 +71,7 @@ public sealed class HttpTransportTests
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
-            var resp = await http.GetAsync("/");
+            var resp = await http.GetAsync("/", TestContext.Current.CancellationToken);
             ((int)resp.StatusCode).Should().Be(404);
         }
         finally

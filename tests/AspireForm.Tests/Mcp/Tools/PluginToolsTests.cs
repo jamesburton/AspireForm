@@ -25,7 +25,7 @@ public sealed class PluginToolsTests
         try
         {
             var tool = new PluginListTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeFalse();
             result.Content[0].Text.Should().Contain("No plugins installed");
         }
@@ -39,7 +39,7 @@ public sealed class PluginToolsTests
     public async Task PluginInstallTool_missing_name_returns_tool_level_error()
     {
         var tool = new PluginInstallTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject(), default);
+        var result = await tool.ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires 'name'");
     }
@@ -48,7 +48,7 @@ public sealed class PluginToolsTests
     public async Task PluginUpdateTool_missing_name_returns_tool_level_error()
     {
         var tool = new PluginUpdateTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject(), default);
+        var result = await tool.ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires 'name'");
     }
@@ -61,7 +61,7 @@ public sealed class PluginToolsTests
         try
         {
             var tool = new PluginRemoveTool(dir);
-            var result = await tool.ExecuteAsync(new JsonObject { ["name"] = "DoesNotExist" }, default);
+            var result = await tool.ExecuteAsync(new JsonObject { ["name"] = "DoesNotExist" }, TestContext.Current.CancellationToken);
             result.IsError.Should().BeTrue();
             result.Content[0].Text.Should().Contain("not installed");
         }

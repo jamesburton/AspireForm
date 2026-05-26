@@ -116,8 +116,8 @@ public sealed class ThemeSwitcherDropdownTests
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Theme A"), TimeSpan.FromSeconds(5));
 
         // Simulate switching to Theme B via the store directly.
-        await store.SetActiveAsync("Theme B");
-        var activation = await store.GetActiveAsync();
+        await store.SetActiveAsync("Theme B", Xunit.TestContext.Current.CancellationToken);
+        var activation = await store.GetActiveAsync(Xunit.TestContext.Current.CancellationToken);
         activation.ActiveName.Should().Be("Theme B");
     }
 }

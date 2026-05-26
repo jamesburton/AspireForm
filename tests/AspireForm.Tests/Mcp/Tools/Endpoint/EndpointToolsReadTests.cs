@@ -28,7 +28,7 @@ public sealed class EndpointToolsReadTests
     {
         using var fix = new EndpointFixtureProjectBuilder("list_empty");
         var tool = new EndpointListTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject { ["projectPath"] = fix.CsprojPath }, default);
+        var result = await tool.ExecuteAsync(new JsonObject { ["projectPath"] = fix.CsprojPath }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         result.Content[0].Text.Should().Contain("(no endpoints found)");
     }
@@ -38,7 +38,7 @@ public sealed class EndpointToolsReadTests
     {
         using var fix = NewFixWithBookEndpoint("list_seeded");
         var tool = new EndpointListTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject { ["projectPath"] = fix.CsprojPath }, default);
+        var result = await tool.ExecuteAsync(new JsonObject { ["projectPath"] = fix.CsprojPath }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         result.Content[0].Text.Should().Contain("GetBooks").And.Contain("/books");
     }
@@ -46,7 +46,7 @@ public sealed class EndpointToolsReadTests
     [Fact]
     public async Task EndpointListTool_returns_error_when_projectPath_missing()
     {
-        var result = await new EndpointListTool(".").ExecuteAsync(new JsonObject(), default);
+        var result = await new EndpointListTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires 'projectPath'");
     }
@@ -58,7 +58,7 @@ public sealed class EndpointToolsReadTests
         var tool = new EndpointShowTool(".");
         var result = await tool.ExecuteAsync(
             new JsonObject { ["methodName"] = "GetBooks", ["projectPath"] = fix.CsprojPath },
-            default);
+            TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         result.Content[0].Text.Should().Contain("\"MethodName\"").And.Contain("GetBooks");
     }
@@ -70,7 +70,7 @@ public sealed class EndpointToolsReadTests
         var tool = new EndpointShowTool(".");
         var result = await tool.ExecuteAsync(
             new JsonObject { ["methodName"] = "NonExistent", ["projectPath"] = fix.CsprojPath },
-            default);
+            TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("not found");
     }

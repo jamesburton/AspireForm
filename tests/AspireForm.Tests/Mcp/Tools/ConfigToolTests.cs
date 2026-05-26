@@ -27,7 +27,7 @@ public sealed class ConfigToolTests
         try
         {
             var tool = new ConfigTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeFalse();
             result.Content[0].Text.Should().Contain("\"project\": \"Demo\"");
         }
@@ -45,7 +45,7 @@ public sealed class ConfigToolTests
         try
         {
             var tool = new ConfigTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeTrue();
             result.Content[0].Text.Should().Contain("Configuration error");
         }

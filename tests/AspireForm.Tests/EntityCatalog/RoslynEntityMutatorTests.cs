@@ -17,7 +17,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new CreateEntity("Book", "Demo.Models", target),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         result.ChangedFiles.Should().Contain(target);
@@ -36,7 +36,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new CreateEntity("Book", "Demo.Models", target),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeFalse();
         result.Diagnostics[0].Message.Should().Contain("Refusing to overwrite");
@@ -59,7 +59,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new DeleteEntity("Book"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         File.Exists(bookFile).Should().BeFalse();
@@ -73,7 +73,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             "does-not-exist.csproj",
             new CreateEntity("X", "Demo", "X.cs"),
-            default);
+            TestContext.Current.CancellationToken);
         result.Success.Should().BeFalse();
         result.Diagnostics[0].Message.Should().Contain("not found");
     }
@@ -91,7 +91,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new AddProperty("Book", new Property("Title", "string", IsNullable: false, IsPrimaryKey: false, Attributes: [])),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         var updated = File.ReadAllText(bookFile);
@@ -112,7 +112,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new RemoveProperty("Book", "Title"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         var updated = File.ReadAllText(bookFile);
@@ -133,7 +133,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new RenameProperty("Book", "Name", "Title"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         var updated = File.ReadAllText(bookFile);
@@ -152,7 +152,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new SetAttribute("Book", null, attr),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         var updated = File.ReadAllText(bookFile);
@@ -173,7 +173,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new ClearAttribute("Book", null, "AspireForm.Annotations.DabExposeAttribute"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         var updated = File.ReadAllText(bookFile);
@@ -194,7 +194,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new AddRelationship("Author", "Book", RelationshipCardinality.OneToMany, null),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         var updated = File.ReadAllText(modelsFile);
@@ -212,7 +212,7 @@ public sealed class RoslynEntityMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new AddRelationship("A", "B", RelationshipCardinality.ManyToMany, null),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeFalse();
         result.Diagnostics[0].Message.Should().Contain("ManyToMany");

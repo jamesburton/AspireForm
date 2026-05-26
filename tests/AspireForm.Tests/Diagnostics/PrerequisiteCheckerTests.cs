@@ -26,7 +26,7 @@ public sealed class PrerequisiteCheckerTests
     public async Task Reports_aspire_cli_as_ok_when_available()
     {
         var checker = new PrerequisiteChecker(new FakeAspireCli("13.3.4"));
-        var report = await checker.RunAsync();
+        var report = await checker.RunAsync(TestContext.Current.CancellationToken);
 
         var aspireCheck = report.Checks.Single(c => c.Name == "aspire CLI");
         aspireCheck.Ok.Should().BeTrue();
@@ -37,7 +37,7 @@ public sealed class PrerequisiteCheckerTests
     public async Task Reports_aspire_cli_as_failed_with_a_remedy_when_missing()
     {
         var checker = new PrerequisiteChecker(new FakeAspireCli(version: null));
-        var report = await checker.RunAsync();
+        var report = await checker.RunAsync(TestContext.Current.CancellationToken);
 
         var aspireCheck = report.Checks.Single(c => c.Name == "aspire CLI");
         aspireCheck.Ok.Should().BeFalse();
@@ -48,7 +48,7 @@ public sealed class PrerequisiteCheckerTests
     public async Task Includes_a_dotnet_sdk_check()
     {
         var checker = new PrerequisiteChecker(new FakeAspireCli("13.3.4"));
-        var report = await checker.RunAsync();
+        var report = await checker.RunAsync(TestContext.Current.CancellationToken);
         report.Checks.Should().Contain(c => c.Name == ".NET SDK");
     }
 
@@ -56,7 +56,7 @@ public sealed class PrerequisiteCheckerTests
     public async Task AllPassed_is_false_when_any_required_check_fails()
     {
         var checker = new PrerequisiteChecker(new FakeAspireCli(version: null));
-        var report = await checker.RunAsync();
+        var report = await checker.RunAsync(TestContext.Current.CancellationToken);
         report.AllPassed.Should().BeFalse();
     }
 }

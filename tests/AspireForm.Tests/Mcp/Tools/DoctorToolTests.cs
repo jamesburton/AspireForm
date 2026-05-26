@@ -19,7 +19,7 @@ public sealed class DoctorToolTests
     public async Task Returns_at_least_one_check_in_the_report()
     {
         var tool = new DoctorTool();
-        var result = await tool.ExecuteAsync([], default);
+        var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
         result.Content[0].Text.Should().NotBeNullOrWhiteSpace();
     }
 }

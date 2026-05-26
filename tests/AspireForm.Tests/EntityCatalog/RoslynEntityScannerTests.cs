@@ -27,7 +27,7 @@ public sealed class RoslynEntityScannerTests
             """);
 
         await using var scanner = new RoslynEntityScanner();
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         catalog.DbContexts.Should().ContainSingle()
             .Which.Name.Should().Be("AppDbContext");
@@ -46,7 +46,7 @@ public sealed class RoslynEntityScannerTests
             """);
 
         await using var scanner = new RoslynEntityScanner();
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         catalog.Entities.Should().ContainSingle(e => e.Name == "Author");
     }
@@ -56,7 +56,7 @@ public sealed class RoslynEntityScannerTests
     {
         using var fix = new FixtureProjectBuilder("scan_nomodels");
         await using var scanner = new RoslynEntityScanner();
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         catalog.Entities.Should().BeEmpty();
         catalog.DbContexts.Should().BeEmpty();
@@ -66,7 +66,7 @@ public sealed class RoslynEntityScannerTests
     public async Task Scan_throws_when_csproj_does_not_exist()
     {
         await using var scanner = new RoslynEntityScanner();
-        var act = async () => await scanner.ScanAsync("does-not-exist.csproj", default);
+        var act = async () => await scanner.ScanAsync("does-not-exist.csproj", TestContext.Current.CancellationToken);
         await act.Should().ThrowAsync<EntityCatalogException>();
     }
 
@@ -85,7 +85,7 @@ public sealed class RoslynEntityScannerTests
             """);
 
         await using var scanner = new RoslynEntityScanner();
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         var author = catalog.Entities.Single(e => e.Name == "Author");
         author.Relationships.Should().ContainSingle(r => r.TargetEntity == "Book" && r.Cardinality == RelationshipCardinality.OneToMany);
@@ -108,7 +108,7 @@ public sealed class RoslynEntityScannerTests
             """);
 
         await using var scanner = new RoslynEntityScanner();
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         var user = catalog.Entities.Single(e => e.Name == "User");
         user.Relationships.Single(r => r.TargetEntity == "Profile")
@@ -132,7 +132,7 @@ public sealed class RoslynEntityScannerTests
             """);
 
         await using var scanner = new RoslynEntityScanner();
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
         var book = catalog.Entities.Single(e => e.Name == "Book");
         book.Attributes.Should().ContainSingle(a => a.FullTypeName == "System.ComponentModel.DataAnnotations.Schema.TableAttribute");
 

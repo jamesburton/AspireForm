@@ -29,7 +29,7 @@ public sealed class AttributeAndRelationshipToolsTests
             ["attributeFullName"] = "AspireForm.Annotations.DabPermissionAttribute",
             ["ctorArgs"] = new JsonArray("anonymous", "read"),
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         var src = File.ReadAllText(bookFile);
         src.Should().Contain("DabPermission").And.Contain("\"anonymous\"").And.Contain("\"read\"");
@@ -49,7 +49,7 @@ public sealed class AttributeAndRelationshipToolsTests
             ["entity"] = "Book",
             ["attributeFullName"] = "AspireForm.Annotations.DabExposeAttribute",
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         File.ReadAllText(bookFile).Should().NotContain("DabExpose");
     }
@@ -69,7 +69,7 @@ public sealed class AttributeAndRelationshipToolsTests
             ["toEntity"] = "Book",
             ["cardinality"] = "OneToMany",
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         File.ReadAllText(modelsFile).Should().Contain("ICollection<Book>");
     }
@@ -84,7 +84,7 @@ public sealed class AttributeAndRelationshipToolsTests
             ["toEntity"] = "B",
             ["cardinality"] = "Bogus",
             ["projectPath"] = "x.csproj",
-        }, default);
+        }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("Unknown cardinality 'Bogus'");
     }
@@ -100,7 +100,7 @@ public sealed class AttributeAndRelationshipToolsTests
             ["toEntity"] = "B",
             ["cardinality"] = "ManyToMany",
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("ManyToMany");
     }
@@ -108,9 +108,9 @@ public sealed class AttributeAndRelationshipToolsTests
     [Fact]
     public async Task Missing_inputs_return_tool_level_errors_on_each_tool()
     {
-        (await new AttributeSetTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
-        (await new AttributeClearTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
-        (await new RelationshipAddTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
-        (await new RelationshipRemoveTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
+        (await new AttributeSetTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
+        (await new AttributeClearTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
+        (await new RelationshipAddTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
+        (await new RelationshipRemoveTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
     }
 }

@@ -35,12 +35,12 @@ public sealed class UiHostSmokeTests
             HttpResponseMessage? resp = null;
             for (int i = 0; i < 20; i++)
             {
-                try { resp = await http.GetAsync("/"); if (resp.IsSuccessStatusCode) break; }
-                catch (HttpRequestException) { await Task.Delay(150); }
+                try { resp = await http.GetAsync("/", TestContext.Current.CancellationToken); if (resp.IsSuccessStatusCode) break; }
+                catch (HttpRequestException) { await Task.Delay(150, TestContext.Current.CancellationToken); }
             }
             resp.Should().NotBeNull();
             resp!.IsSuccessStatusCode.Should().BeTrue();
-            var body = await resp.Content.ReadAsStringAsync();
+            var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             body.Should().Contain("AspireForm");
         }
         finally

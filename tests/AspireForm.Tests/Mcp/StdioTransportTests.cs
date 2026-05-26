@@ -29,7 +29,7 @@ public sealed class StdioTransportTests
         var output = new StringWriter();
         var transport = new StdioTransport(input, output);
 
-        await transport.RunAsync(server, default);
+        await transport.RunAsync(server, TestContext.Current.CancellationToken);
 
         var lines = output.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
         lines.Length.Should().Be(2);
@@ -47,7 +47,7 @@ public sealed class StdioTransportTests
         var output = new StringWriter();
         var transport = new StdioTransport(input, output);
 
-        await transport.RunAsync(server, default);
+        await transport.RunAsync(server, TestContext.Current.CancellationToken);
 
         output.ToString().Should().BeEmpty();
     }

@@ -26,7 +26,7 @@ public sealed class DestroyToolTests
         try
         {
             var tool = new DestroyTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeFalse();
             result.Content[0].Text.Should().Contain("Nothing to destroy");
         }
@@ -46,7 +46,7 @@ public sealed class DestroyToolTests
         try
         {
             var tool = new DestroyTool(dir);
-            var result = await tool.ExecuteAsync(new JsonObject { ["block"] = "missing" }, default);
+            var result = await tool.ExecuteAsync(new JsonObject { ["block"] = "missing" }, TestContext.Current.CancellationToken);
             result.IsError.Should().BeTrue();
             result.Content[0].Text.Should().Contain("not tracked");
         }

@@ -31,6 +31,22 @@ ergonomics on top of the official `aspire` CLI.
   `System.Text.Json.Nodes.JsonObject` DOM before any logic runs.
 - All interaction with the `aspire` CLI goes through `IAspireCli` — never shell out directly.
 
+## Build discipline
+
+- **Warnings are errors.** `Directory.Build.props` sets `TreatWarningsAsErrors=true`
+  for the whole repo. Any new warning fails the build. Never report a build "clean"
+  while warnings exist — always state the warning count.
+- **Do NOT add entries to `WarningsNotAsErrors` or `NoWarn`** without explicit user
+  authorisation. Suppression is cheating — fix the warning at its source. The only
+  current exemption is `NU1608` (a transitive bUnit/HtmlSanitizer/AngleSharp version
+  conflict out of our control), documented in `Directory.Build.props`.
+- **Tests must pass `TestContext.Current.CancellationToken`** to any method that
+  accepts a `CancellationToken`. This is enforced by `xUnit1051`. Never pass
+  `default`, `CancellationToken.None`, or `default(CancellationToken)` from a test
+  call site — those break test cancellation responsiveness. In files that import
+  both `Bunit` and `Xunit` (where `TestContext` is ambiguous), use the fully
+  qualified `Xunit.TestContext.Current.CancellationToken`.
+
 ## Build & test
 
     dotnet build

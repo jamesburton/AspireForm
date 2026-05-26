@@ -30,7 +30,7 @@ public sealed class EntityToolsMutationTests
             ["namespace"] = "Demo.Models",
             ["filePath"] = target,
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         File.Exists(target).Should().BeTrue();
     }
@@ -46,7 +46,7 @@ public sealed class EntityToolsMutationTests
             ["name"] = "Title",
             ["clrType"] = "string",
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         File.ReadAllText(bookFile).Should().Contain("Title");
     }
@@ -61,7 +61,7 @@ public sealed class EntityToolsMutationTests
             ["entity"] = "Book",
             ["property"] = "Title",
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         File.ReadAllText(bookFile).Should().NotContain("Title");
     }
@@ -69,10 +69,10 @@ public sealed class EntityToolsMutationTests
     [Fact]
     public async Task Missing_inputs_return_tool_level_errors_on_each_tool()
     {
-        (await new EntityCreateTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
-        (await new EntityDeleteTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
-        (await new PropertyAddTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
-        (await new PropertyRemoveTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
-        (await new PropertyRenameTool(".").ExecuteAsync(new JsonObject(), default)).IsError.Should().BeTrue();
+        (await new EntityCreateTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
+        (await new EntityDeleteTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
+        (await new PropertyAddTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
+        (await new PropertyRemoveTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
+        (await new PropertyRenameTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken)).IsError.Should().BeTrue();
     }
 }

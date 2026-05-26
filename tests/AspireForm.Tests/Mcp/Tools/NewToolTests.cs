@@ -21,7 +21,7 @@ public sealed class NewToolTests
     public async Task Missing_name_returns_tool_level_error()
     {
         var tool = new NewTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject(), default);
+        var result = await tool.ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires 'name'");
     }
@@ -35,7 +35,7 @@ public sealed class NewToolTests
         try
         {
             var tool = new NewTool(outDir);
-            var result = await tool.ExecuteAsync(new JsonObject { ["name"] = "Demo" }, default);
+            var result = await tool.ExecuteAsync(new JsonObject { ["name"] = "Demo" }, TestContext.Current.CancellationToken);
             result.IsError.Should().BeTrue();
             result.Content[0].Text.Should().Contain("Refusing to scaffold");
         }

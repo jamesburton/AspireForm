@@ -41,7 +41,7 @@ public sealed class EndpointToolsMutationTests
             ["projectPath"] = fix.CsprojPath,
             ["filePath"] = targetFile,
             ["namespace"] = "Demo",
-        }, default);
+        }, TestContext.Current.CancellationToken);
 
         result.IsError.Should().BeFalse();
         File.Exists(targetFile).Should().BeTrue();
@@ -58,14 +58,14 @@ public sealed class EndpointToolsMutationTests
             ["methodName"] = "GetBooks",
             ["typeName"] = "BooksHandler",
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
 
         result.IsError.Should().BeFalse();
 
         // Confirm endpoint is gone via re-scan.
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
         catalog.Endpoints.Should().BeEmpty();
     }
 
@@ -80,14 +80,14 @@ public sealed class EndpointToolsMutationTests
             ["typeName"] = "BooksHandler",
             ["policy"] = "readers",
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
 
         result.IsError.Should().BeFalse();
 
         // Confirm auth policy via re-scan.
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
         catalog.Endpoints.Should().ContainSingle().Which.AuthPolicy.Should().Be("readers");
     }
 
@@ -103,7 +103,7 @@ public sealed class EndpointToolsMutationTests
             ["paramName"] = "ctx",
             ["clrType"] = "HttpContext",
             ["projectPath"] = fix.CsprojPath,
-        }, default);
+        }, TestContext.Current.CancellationToken);
 
         result.IsError.Should().BeFalse();
         // Confirm parameter was added by reading the modified file.
@@ -116,7 +116,7 @@ public sealed class EndpointToolsMutationTests
     [Fact]
     public async Task EndpointCreateTool_returns_error_when_required_args_missing()
     {
-        var result = await new EndpointCreateTool(".").ExecuteAsync(new JsonObject(), default);
+        var result = await new EndpointCreateTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires");
     }

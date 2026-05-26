@@ -70,7 +70,7 @@ public sealed class ThemeCssEndpointTests : IDisposable
         {
             using var http = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
             var resp = await PollAsync(http, "/theme.css");
-            var body = await resp!.Content.ReadAsStringAsync();
+            var body = await resp!.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
             body.Should().Contain(":root");
             body.Should().Contain("--background:");

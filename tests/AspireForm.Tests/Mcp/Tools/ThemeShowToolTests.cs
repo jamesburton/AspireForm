@@ -26,7 +26,7 @@ public sealed class ThemeShowToolTests : IDisposable
     public async Task ThemeShowTool_returns_active_theme_info_with_all_tokens()
     {
         var tool = new ThemeShowTool(_dir);
-        var result = await tool.ExecuteAsync([], default);
+        var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
 
         var json = result.Content[0].Text;
@@ -53,7 +53,7 @@ public sealed class ThemeShowToolTests : IDisposable
         Directory.CreateDirectory(altDir);
 
         var tool = new ThemeShowTool(_dir); // default to _dir
-        var result = await tool.ExecuteAsync(new JsonObject { ["projectDir"] = altDir }, default);
+        var result = await tool.ExecuteAsync(new JsonObject { ["projectDir"] = altDir }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
 
         var json = result.Content[0].Text;

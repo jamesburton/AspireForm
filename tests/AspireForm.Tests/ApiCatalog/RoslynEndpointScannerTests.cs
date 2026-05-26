@@ -14,7 +14,7 @@ public sealed class RoslynEndpointScannerTests
 
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         catalog.Endpoints.Should().BeEmpty();
     }
@@ -35,7 +35,7 @@ public sealed class RoslynEndpointScannerTests
 
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         catalog.Endpoints.Should().ContainSingle();
         var ep = catalog.Endpoints[0];
@@ -61,7 +61,7 @@ public sealed class RoslynEndpointScannerTests
 
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         var ep = catalog.Endpoints.Should().ContainSingle().Which;
         ep.Parameters.Should().ContainSingle()
@@ -86,7 +86,7 @@ public sealed class RoslynEndpointScannerTests
 
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         var ep = catalog.Endpoints.Should().ContainSingle().Which;
         ep.AuthPolicy.Should().Be("admin");
@@ -113,7 +113,7 @@ public sealed class RoslynEndpointScannerTests
 
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         // First endpoint wins; second is skipped with a warning.
         catalog.Endpoints.Should().ContainSingle();
@@ -139,7 +139,7 @@ public sealed class RoslynEndpointScannerTests
 
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
 
         var ep = catalog.Endpoints.Should().ContainSingle().Which;
         ep.Summary.Should().Be("Returns all books");
@@ -151,7 +151,7 @@ public sealed class RoslynEndpointScannerTests
     {
         var scanner = new RoslynEndpointScanner();
         await using var _ = scanner;
-        var act = async () => await scanner.ScanAsync("does-not-exist.csproj", default);
+        var act = async () => await scanner.ScanAsync("does-not-exist.csproj", TestContext.Current.CancellationToken);
         await act.Should().ThrowAsync<EndpointCatalogException>()
             .WithMessage("*not found*");
     }

@@ -27,7 +27,7 @@ public sealed class EntityToolsReadTests
     {
         using var fix = NewFixWithBook("read_list");
         var tool = new EntityListTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject { ["projectPath"] = fix.CsprojPath }, default);
+        var result = await tool.ExecuteAsync(new JsonObject { ["projectPath"] = fix.CsprojPath }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         result.Content[0].Text.Should().Contain("Book").And.Contain("Demo");
     }
@@ -35,7 +35,7 @@ public sealed class EntityToolsReadTests
     [Fact]
     public async Task EntityListTool_returns_tool_level_error_when_projectPath_missing()
     {
-        var result = await new EntityListTool(".").ExecuteAsync(new JsonObject(), default);
+        var result = await new EntityListTool(".").ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires 'projectPath'");
     }
@@ -47,7 +47,7 @@ public sealed class EntityToolsReadTests
         var tool = new EntityShowTool(".");
         var result = await tool.ExecuteAsync(
             new JsonObject { ["entity"] = "Book", ["projectPath"] = fix.CsprojPath },
-            default);
+            TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         result.Content[0].Text.Should().Contain("\"Name\": \"Book\"").And.Contain("\"Properties\"");
     }
@@ -59,7 +59,7 @@ public sealed class EntityToolsReadTests
         var tool = new EntityShowTool(".");
         var result = await tool.ExecuteAsync(
             new JsonObject { ["entity"] = "Missing", ["projectPath"] = fix.CsprojPath },
-            default);
+            TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("not found");
     }
@@ -69,7 +69,7 @@ public sealed class EntityToolsReadTests
     {
         using var fix = NewFixWithBook("read_ctxlist");
         var tool = new DbContextListTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject { ["projectPath"] = fix.CsprojPath }, default);
+        var result = await tool.ExecuteAsync(new JsonObject { ["projectPath"] = fix.CsprojPath }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeFalse();
         result.Content[0].Text.Should().Contain("Ctx").And.Contain("Book");
     }

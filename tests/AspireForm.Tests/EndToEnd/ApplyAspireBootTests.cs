@@ -70,8 +70,8 @@ public sealed class ApplyAspireBootTests
             var builder = DistributedApplicationTestingBuilder.Create([]);
             builder.AddSqlServer("sql").AddDatabase("appdb");
 
-            await using var app = await builder.BuildAsync();
-            await app.StartAsync();
+            await using var app = await builder.BuildAsync(TestContext.Current.CancellationToken);
+            await app.StartAsync(TestContext.Current.CancellationToken);
 
             try
             {
@@ -85,7 +85,7 @@ public sealed class ApplyAspireBootTests
             }
             finally
             {
-                await app.StopAsync();
+                await app.StopAsync(TestContext.Current.CancellationToken);
             }
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("application host assembly", StringComparison.OrdinalIgnoreCase))

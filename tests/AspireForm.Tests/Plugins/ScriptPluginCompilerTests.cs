@@ -31,10 +31,10 @@ public sealed class ScriptPluginCompilerTests : IDisposable
 
         var scriptPath = Path.Combine(_projectDir, ".aspireform", "scripts", "test.cs");
         Directory.CreateDirectory(Path.GetDirectoryName(scriptPath)!);
-        await File.WriteAllTextAsync(scriptPath, source);
+        await File.WriteAllTextAsync(scriptPath, source, TestContext.Current.CancellationToken);
 
         var compiler = new ScriptPluginCompiler();
-        var result = await compiler.CompileAsync(scriptPath, _projectDir);
+        var result = await compiler.CompileAsync(scriptPath, _projectDir, TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue(result.ErrorMessage);
         result.AssemblyPath.Should().NotBeNull();
@@ -46,10 +46,10 @@ public sealed class ScriptPluginCompilerTests : IDisposable
     {
         var scriptPath = Path.Combine(_projectDir, ".aspireform", "scripts", "bad.cs");
         Directory.CreateDirectory(Path.GetDirectoryName(scriptPath)!);
-        await File.WriteAllTextAsync(scriptPath, "this is not valid C# at all");
+        await File.WriteAllTextAsync(scriptPath, "this is not valid C# at all", TestContext.Current.CancellationToken);
 
         var compiler = new ScriptPluginCompiler();
-        var result = await compiler.CompileAsync(scriptPath, _projectDir);
+        var result = await compiler.CompileAsync(scriptPath, _projectDir, TestContext.Current.CancellationToken);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().NotBeNullOrEmpty();
@@ -71,14 +71,14 @@ public sealed class ScriptPluginCompilerTests : IDisposable
 
         var scriptPath = Path.Combine(_projectDir, ".aspireform", "scripts", "cached.cs");
         Directory.CreateDirectory(Path.GetDirectoryName(scriptPath)!);
-        await File.WriteAllTextAsync(scriptPath, source);
+        await File.WriteAllTextAsync(scriptPath, source, TestContext.Current.CancellationToken);
 
         var compiler = new ScriptPluginCompiler();
-        var first = await compiler.CompileAsync(scriptPath, _projectDir);
+        var first = await compiler.CompileAsync(scriptPath, _projectDir, TestContext.Current.CancellationToken);
         var firstWritten = File.GetLastWriteTimeUtc(first.AssemblyPath!);
 
-        await Task.Delay(50);
-        var second = await compiler.CompileAsync(scriptPath, _projectDir);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        var second = await compiler.CompileAsync(scriptPath, _projectDir, TestContext.Current.CancellationToken);
         var secondWritten = File.GetLastWriteTimeUtc(second.AssemblyPath!);
 
         second.AssemblyPath.Should().Be(first.AssemblyPath);

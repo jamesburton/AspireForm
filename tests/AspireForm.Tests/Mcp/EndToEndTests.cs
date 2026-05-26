@@ -24,7 +24,7 @@ public sealed class EndToEndTests
         var output = new StringWriter();
         var transport = new StdioTransport(input, output);
 
-        await transport.RunAsync(server, default);
+        await transport.RunAsync(server, TestContext.Current.CancellationToken);
 
         var lines = output.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
         lines.Length.Should().Be(3);

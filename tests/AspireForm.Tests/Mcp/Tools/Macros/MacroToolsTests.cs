@@ -21,7 +21,7 @@ public sealed class MacroToolsTests
     public async Task ScaffoldAspireAppWithDataTool_missing_name_returns_tool_level_error()
     {
         var tool = new ScaffoldAspireAppWithDataTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject(), default);
+        var result = await tool.ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires 'name'");
     }
@@ -42,7 +42,7 @@ public sealed class MacroToolsTests
         try
         {
             var tool = new AddCacheLayerTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeTrue();
         }
         finally
@@ -64,7 +64,7 @@ public sealed class MacroToolsTests
     public async Task AddAuthenticationTool_unknown_variant_returns_tool_level_error()
     {
         var tool = new AddAuthenticationTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject { ["variant"] = "saml" }, default);
+        var result = await tool.ExecuteAsync(new JsonObject { ["variant"] = "saml" }, TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("Unknown variant 'saml'");
     }
@@ -73,7 +73,7 @@ public sealed class MacroToolsTests
     public async Task AddAuthenticationTool_missing_variant_returns_tool_level_error()
     {
         var tool = new AddAuthenticationTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject(), default);
+        var result = await tool.ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires 'variant'");
     }

@@ -25,7 +25,7 @@ public sealed class ApplyToolTests
         try
         {
             var tool = new ApplyTool(dir);
-            var result = await tool.ExecuteAsync([], default);
+            var result = await tool.ExecuteAsync([], TestContext.Current.CancellationToken);
             result.IsError.Should().BeFalse();
             result.Content[0].Text.Should().Contain("No changes");
         }

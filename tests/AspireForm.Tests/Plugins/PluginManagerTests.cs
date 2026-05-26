@@ -31,7 +31,7 @@ public sealed class PluginManagerTests : IDisposable
         };
 
         var manager = new PluginManager();
-        var registry = await manager.DiscoverAndLoadAsync(model, _dir);
+        var registry = await manager.DiscoverAndLoadAsync(model, _dir, TestContext.Current.CancellationToken);
 
         registry.Get("sqlserver").Should().NotBeNull();
         // No lockfile written because no plugin was needed.
@@ -107,7 +107,7 @@ public sealed class PluginManagerTests : IDisposable
             AspireForm = new AspireFormHeader { Version = 1, Project = "X", AppHost = "X.AppHost" },
         };
 
-        await new PluginManager().DiscoverAndLoadAsync(model, _dir);
+        await new PluginManager().DiscoverAndLoadAsync(model, _dir, TestContext.Current.CancellationToken);
 
         var after = File.ReadAllText(lockPath);
         after.Should().Be(before, "DiscoverAndLoadAsync must not rewrite the lockfile when nothing changed");
@@ -127,7 +127,7 @@ public sealed class PluginManagerTests : IDisposable
                 public BlockKind Kind => BlockKind.Module;
                 public ProviderPlan Plan(PlanContext context) => new();
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var model = new ProjectModel
         {
@@ -138,7 +138,7 @@ public sealed class PluginManagerTests : IDisposable
             },
         };
 
-        var registry = await new PluginManager().DiscoverAndLoadAsync(model, _dir);
+        var registry = await new PluginManager().DiscoverAndLoadAsync(model, _dir, TestContext.Current.CancellationToken);
 
         registry.Get("my-vertical").Type.Should().Be("my-vertical");
     }
@@ -163,7 +163,7 @@ public sealed class PluginManagerTests : IDisposable
         };
 
         var manager = new PluginManager();
-        var registry = await manager.DiscoverAndLoadAsync(model, _dir);
+        var registry = await manager.DiscoverAndLoadAsync(model, _dir, TestContext.Current.CancellationToken);
 
         // Built-ins still present.
         registry.Get("sqlserver").Should().NotBeNull();

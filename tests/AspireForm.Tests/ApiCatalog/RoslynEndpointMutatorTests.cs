@@ -18,7 +18,7 @@ public sealed class RoslynEndpointMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new CreateEndpoint("GetBooks", "BooksHandler", "/books", "GET", target, "Demo.Handlers"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         result.ChangedFiles.Should().Contain(target);
@@ -39,7 +39,7 @@ public sealed class RoslynEndpointMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new CreateEndpoint("GetBooks", "BooksHandler", "/books", "GET", target, "Demo"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeFalse();
         result.Diagnostics[0].Message.Should().Contain("Refusing to overwrite");
@@ -65,14 +65,14 @@ public sealed class RoslynEndpointMutatorTests
 
         var scanner = new RoslynEndpointScanner();
         await using var __ = scanner;
-        var catalog = await scanner.ScanAsync(fix.CsprojPath, default);
+        var catalog = await scanner.ScanAsync(fix.CsprojPath, TestContext.Current.CancellationToken);
         catalog.Endpoints.Should().ContainSingle();
 
         var mutator = new RoslynEndpointMutator();
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new AddParameter("GetBook", "BooksHandler", "id", "int"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         var content = File.ReadAllText(result.ChangedFiles[0]);
@@ -100,7 +100,7 @@ public sealed class RoslynEndpointMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new SetAuthPolicy("GetAdmin", "AdminHandler", "admin"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         var content = File.ReadAllText(result.ChangedFiles[0]);
@@ -125,7 +125,7 @@ public sealed class RoslynEndpointMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new AddParameter("GetBooks", "BooksHandler", "ctx", "HttpContext"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeFalse();
         result.Diagnostics[0].Message.Should().Contain("Expression-bodied");
@@ -152,7 +152,7 @@ public sealed class RoslynEndpointMutatorTests
         var result = await mutator.ApplyAsync(
             fix.CsprojPath,
             new DeleteEndpoint("GetBooks", "BooksHandler"),
-            default);
+            TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue();
         File.Exists(result.ChangedFiles[0]).Should().BeFalse();
@@ -165,7 +165,7 @@ public sealed class RoslynEndpointMutatorTests
         var result = await mutator.ApplyAsync(
             "does-not-exist.csproj",
             new CreateEndpoint("GetBooks", "BooksHandler", "/books", "GET", "Handlers.cs", "Demo"),
-            default);
+            TestContext.Current.CancellationToken);
         result.Success.Should().BeFalse();
         result.Diagnostics[0].Message.Should().Contain("not found");
     }

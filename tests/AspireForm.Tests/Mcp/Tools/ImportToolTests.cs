@@ -21,7 +21,7 @@ public sealed class ImportToolTests
     public async Task Missing_block_returns_tool_level_error()
     {
         var tool = new ImportTool(".");
-        var result = await tool.ExecuteAsync(new JsonObject(), default);
+        var result = await tool.ExecuteAsync(new JsonObject(), TestContext.Current.CancellationToken);
         result.IsError.Should().BeTrue();
         result.Content[0].Text.Should().Contain("requires 'block'");
     }

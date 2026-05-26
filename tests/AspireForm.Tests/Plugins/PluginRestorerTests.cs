@@ -16,7 +16,7 @@ public sealed class PluginRestorerTests : IDisposable
     {
         // Newtonsoft.Json 13.0.3 is universally cached on .NET dev machines.
         var result = await _restorer.RestoreAsync(
-            packageId: "Newtonsoft.Json", version: "13.0.3", workingDirectory: _dir);
+            packageId: "Newtonsoft.Json", version: "13.0.3", workingDirectory: _dir, TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue(result.ErrorMessage);
         result.PackageDirectory.Should().NotBeNull();
@@ -29,7 +29,7 @@ public sealed class PluginRestorerTests : IDisposable
     public async Task RestoreAsync_reports_failure_for_a_nonexistent_package()
     {
         var result = await _restorer.RestoreAsync(
-            packageId: "This.Package.Does.Not.Exist.AspireForm.Test", version: "0.0.1", workingDirectory: _dir);
+            packageId: "This.Package.Does.Not.Exist.AspireForm.Test", version: "0.0.1", workingDirectory: _dir, TestContext.Current.CancellationToken);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().NotBeNullOrEmpty();
@@ -40,7 +40,7 @@ public sealed class PluginRestorerTests : IDisposable
     {
         // Use a stable package; floating-version restore should locate it in the cache.
         var result = await _restorer.RestoreAsync(
-            packageId: "Newtonsoft.Json", version: "*", workingDirectory: _dir);
+            packageId: "Newtonsoft.Json", version: "*", workingDirectory: _dir, TestContext.Current.CancellationToken);
 
         result.Success.Should().BeTrue(result.ErrorMessage);
         result.PackageDirectory.Should().NotBeNull();

@@ -9,16 +9,15 @@
       WarningsNotAsErrors list below with a clear reason.
 
     Exempted rules (warning, not error):
-      - xUnit1051: ~338 pre-existing instances across the test suite calling
-        methods that accept CancellationToken with `default` or
-        CancellationToken.None instead of TestContext.Current.CancellationToken.
-        Mechanical fix; TODO: address in a dedicated cleanup pass.
       - NU1608: HtmlSanitizer 9.0.892 (a transitive dep of bUnit) pins AngleSharp
         0.17.1 but the resolution picks 1.2.0. Out of our control until upstream
         bUnit/HtmlSanitizer update; harmless at runtime.
+
+    DO NOT add further entries to WarningsNotAsErrors or NoWarn without explicit
+    user authorisation. Suppression is cheating — fix the warning at its source.
   -->
   <PropertyGroup>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsNotAsErrors>xUnit1051;NU1608</WarningsNotAsErrors>
+    <WarningsNotAsErrors>NU1608</WarningsNotAsErrors>
   </PropertyGroup>
 </Project>

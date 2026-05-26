@@ -27,7 +27,7 @@ public sealed class McpServerTests
     public async Task Initialize_returns_protocol_version_and_capabilities()
     {
         var server = NewServer();
-        var resp = await server.DispatchAsync("""{"jsonrpc":"2.0","id":1,"method":"initialize"}""", default);
+        var resp = await server.DispatchAsync("""{"jsonrpc":"2.0","id":1,"method":"initialize"}""", TestContext.Current.CancellationToken);
         var node = JsonNode.Parse(resp!) as JsonObject;
         node!["result"]!["protocolVersion"]!.GetValue<string>().Should().NotBeNullOrEmpty();
         node["result"]!["capabilities"]!["tools"].Should().NotBeNull();
@@ -37,7 +37,7 @@ public sealed class McpServerTests
     public async Task ToolsList_returns_registered_handlers()
     {
         var server = NewServer(new EchoTool());
-        var resp = await server.DispatchAsync("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""", default);
+        var resp = await server.DispatchAsync("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""", TestContext.Current.CancellationToken);
         var node = JsonNode.Parse(resp!) as JsonObject;
         var tools = node!["result"]!["tools"] as JsonArray;
         tools!.Count.Should().Be(1);
@@ -49,7 +49,7 @@ public sealed class McpServerTests
     {
         var server = NewServer(new EchoTool());
         var resp = await server.DispatchAsync(
-            """{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"echo","arguments":{"text":"hi"}}}""", default);
+            """{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"echo","arguments":{"text":"hi"}}}""", TestContext.Current.CancellationToken);
         var node = JsonNode.Parse(resp!) as JsonObject;
         var content = node!["result"]!["content"] as JsonArray;
         content![0]!["type"]!.GetValue<string>().Should().Be("text");
@@ -62,7 +62,7 @@ public sealed class McpServerTests
     {
         var server = NewServer();
         var resp = await server.DispatchAsync(
-            """{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"missing"}}""", default);
+            """{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"missing"}}""", TestContext.Current.CancellationToken);
         var node = JsonNode.Parse(resp!) as JsonObject;
         node!["error"]!["code"]!.GetValue<int>().Should().Be(JsonRpc.InternalError);
         node["error"]!["message"]!.GetValue<string>().Should().Contain("missing");
@@ -72,7 +72,7 @@ public sealed class McpServerTests
     public async Task Unknown_method_returns_method_not_found()
     {
         var server = NewServer();
-        var resp = await server.DispatchAsync("""{"jsonrpc":"2.0","id":5,"method":"made/up"}""", default);
+        var resp = await server.DispatchAsync("""{"jsonrpc":"2.0","id":5,"method":"made/up"}""", TestContext.Current.CancellationToken);
         var node = JsonNode.Parse(resp!) as JsonObject;
         node!["error"]!["code"]!.GetValue<int>().Should().Be(JsonRpc.MethodNotFound);
     }
@@ -81,7 +81,7 @@ public sealed class McpServerTests
     public async Task Parse_error_returns_parse_error_response_with_null_id()
     {
         var server = NewServer();
-        var resp = await server.DispatchAsync("not json", default);
+        var resp = await server.DispatchAsync("not json", TestContext.Current.CancellationToken);
         var node = JsonNode.Parse(resp!) as JsonObject;
         node!["error"]!["code"]!.GetValue<int>().Should().Be(JsonRpc.ParseError);
         // JsonObject indexer returns C# null when the JSON value is null, so we can't call GetValueKind() on it.
@@ -93,7 +93,7 @@ public sealed class McpServerTests
     public async Task Notification_with_no_id_returns_null()
     {
         var server = NewServer();
-        var resp = await server.DispatchAsync("""{"jsonrpc":"2.0","method":"tools/list"}""", default);
+        var resp = await server.DispatchAsync("""{"jsonrpc":"2.0","method":"tools/list"}""", TestContext.Current.CancellationToken);
         resp.Should().BeNull();
     }
 }

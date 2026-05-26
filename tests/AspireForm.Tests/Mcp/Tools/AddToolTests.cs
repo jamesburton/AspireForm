@@ -33,7 +33,7 @@ public sealed class AddToolTests
         try
         {
             var tool = new AddTool(dir);
-            var result = await tool.ExecuteAsync(new JsonObject { ["type"] = "sqlserver" }, default);
+            var result = await tool.ExecuteAsync(new JsonObject { ["type"] = "sqlserver" }, TestContext.Current.CancellationToken);
             result.IsError.Should().BeFalse();
             result.Content[0].Text.Should().Contain("Added resource 'sqlserver'");
             File.ReadAllText(Path.Combine(dir, "aspireform.yaml")).Should().Contain("sqlserver");
@@ -58,7 +58,7 @@ public sealed class AddToolTests
                 ["module"] = true,
                 ["dependsOn"] = new JsonArray("sql"),
             };
-            var result = await tool.ExecuteAsync(args, default);
+            var result = await tool.ExecuteAsync(args, TestContext.Current.CancellationToken);
             result.IsError.Should().BeFalse();
             var yaml = File.ReadAllText(Path.Combine(dir, "aspireform.yaml"));
             yaml.Should().Contain("data:").And.Contain("ef-data").And.Contain("sql");
@@ -76,8 +76,8 @@ public sealed class AddToolTests
         try
         {
             var tool = new AddTool(dir);
-            await tool.ExecuteAsync(new JsonObject { ["type"] = "redis" }, default);
-            var second = await tool.ExecuteAsync(new JsonObject { ["type"] = "redis" }, default);
+            await tool.ExecuteAsync(new JsonObject { ["type"] = "redis" }, TestContext.Current.CancellationToken);
+            var second = await tool.ExecuteAsync(new JsonObject { ["type"] = "redis" }, TestContext.Current.CancellationToken);
             second.IsError.Should().BeTrue();
             second.Content[0].Text.Should().Contain("already exists");
         }
