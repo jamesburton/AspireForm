@@ -115,7 +115,12 @@
 
     private void Select(EndpointInfo ep) => Selected = ep;
 
-    private void OpenNewEndpoint() => ShowNewEndpoint = true;
+    private void OpenNewEndpoint()
+    {
+        Console.WriteLine($"[ui-diag] OpenNewEndpoint invoked; ShowNewEndpoint was {ShowNewEndpoint}, setting to true");
+        ShowNewEndpoint = true;
+    }
+
     private void CloseNewEndpoint() => ShowNewEndpoint = false;
     private async Task OnEndpointCreatedAsync() { ShowNewEndpoint = false; await ReloadAsync(); }
 }

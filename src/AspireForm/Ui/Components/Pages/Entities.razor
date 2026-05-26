@@ -114,7 +114,12 @@
 
     private void Select(Entity e) => Selected = e;
 
-    private void OpenNewEntity() => ShowNewEntity = true;
+    private void OpenNewEntity()
+    {
+        Console.WriteLine($"[ui-diag] OpenNewEntity invoked; ShowNewEntity was {ShowNewEntity}, setting to true");
+        ShowNewEntity = true;
+    }
+
     private void CloseNewEntity() => ShowNewEntity = false;
     private async Task OnEntityCreatedAsync() { ShowNewEntity = false; await ReloadAsync(); }
 }
