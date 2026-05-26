@@ -14,11 +14,10 @@
     <HeadOutlet />
 </head>
 <body>
-    @* prerender:false ensures the page does not render SSR first; the interactive circuit
-       renders the page once it is connected. Avoids a class of issue where a slow
-       OnInitializedAsync during the SSR phase causes the static HTML to ship without
-       the corresponding interactive upgrade ever wiring the event handlers. *@
-    <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+    @* Use InteractiveServer with the default prerender:true so users see the SSR'd layout
+       immediately while the interactive circuit upgrades in the background. Page-level
+       @rendermode InteractiveServer on each route ensures event handlers work after upgrade. *@
+    <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>
