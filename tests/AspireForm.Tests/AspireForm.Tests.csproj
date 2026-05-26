@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AspireForm\AspireForm.csproj" />
+    <ProjectReference Include="..\..\src\AspireForm.Annotations\AspireForm.Annotations.csproj" />
   </ItemGroup>
 
 </Project>
