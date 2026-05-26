@@ -4,6 +4,16 @@ All notable changes to AspireForm are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-05-26
+
+### Added
+- **Theme Editor** — `aspireform ui` now includes a `/theme` page for editing the AspireForm UI color
+  tokens. Changes are saved to `.aspireform/theme.json` and take effect immediately via a live CSS reload.
+- `aspireform_theme_show` MCP tool (read-only) — returns the active theme token map as JSON.
+
+### Changed
+- `site.css` refactored to CSS custom properties (`var(--af-*)`); all 14 color tokens are now themeable.
+
 ## [0.5.0] - 2026-05-25
 
 ### Added

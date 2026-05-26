@@ -9,9 +9,7 @@ reconciles that against what is on disk and applies the difference.
 
 ## Status
 
-v0.3.0 — Plugin loader. AspireForm now supports external NuGet plugins; the first one
-(`AspireForm.Plugin.Redis`) is available. More verticals (Mailpit, Hangfire, DAB, auth × 3,
-reporting, ETL) arrive in Plans 2.1–2.9.
+v0.7.0 — Theme Editor. `aspireform ui` now includes a visual theme editor for the UI color tokens.
 
 ## Install / run
 
@@ -113,6 +111,21 @@ When the `ef-data` block in your `aspireform.yaml` points at this project (`inpu
 12 new MCP tools (registered alongside the existing 17) cover full CRUD: `aspireform_entity_{list,show,create,delete}`, `aspireform_property_{add,remove,rename}`, `aspireform_attribute_{set,clear}`, `aspireform_relationship_{add,remove}`, `aspireform_dbcontext_list`.
 
 > **Security:** the UI binds localhost only and has no authentication. Dev-tool use only.
+
+## Use the theme editor
+
+`aspireform ui` includes a **Theme** tab where you can adjust the color tokens that govern the
+AspireForm UI shell. Changes are saved to `.aspireform/theme.json` in your project directory and
+take effect immediately (no page reload required).
+
+```bash
+aspireform ui           # then navigate to http://localhost:5050/theme
+```
+
+The token map can also be read by an agent via the `aspireform_theme_show` MCP tool.
+
+> **Scope:** The theme editor styles the AspireForm UI shell only. It does not modify your
+> project's own CSS or scaffold any code into your Aspire solution.
 
 ## Configuration
 
