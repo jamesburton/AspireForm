@@ -23,48 +23,41 @@ public sealed class ThemeShowToolTests : IDisposable
     }
 
     [Fact]
-    public async Task ThemeShowTool_returns_all_14_default_tokens_when_no_theme_json()
+    public async Task ThemeShowTool_returns_active_theme_info_with_all_tokens()
     {
         var tool = new ThemeShowTool(_dir);
         var result = await tool.ExecuteAsync([], default);
         result.IsError.Should().BeFalse();
 
         var json = result.Content[0].Text;
-        var tokens = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-        tokens.Should().NotBeNull();
-        tokens!.Should().ContainKey("color-primary");
-        tokens["color-primary"].Should().Be("#1a73e8");
-        tokens.Count.Should().BeGreaterThanOrEqualTo(14);
-    }
+        var node = JsonNode.Parse(json) as JsonObject;
+        node.Should().NotBeNull();
+        node!["activeName"].Should().NotBeNull();
+        node["darkMode"].Should().NotBeNull();
+        node["allThemes"].Should().NotBeNull();
+        node["tokens"].Should().NotBeNull();
+        node["radius"].Should().NotBeNull();
 
-    [Fact]
-    public async Task ThemeShowTool_reflects_custom_override_from_theme_json()
-    {
-        var aspireformDir = Path.Combine(_dir, ".aspireform");
-        Directory.CreateDirectory(aspireformDir);
-        await File.WriteAllTextAsync(Path.Combine(aspireformDir, "theme.json"),
-            """{ "color-primary": "#ff1234" }""");
-
-        var tool = new ThemeShowTool(_dir);
-        var result = await tool.ExecuteAsync([], default);
-        result.IsError.Should().BeFalse();
-        result.Content[0].Text.Should().Contain("#ff1234");
+        // Verify light tokens include all 19 known names.
+        var lightTokens = node["tokens"]!["light"] as JsonObject;
+        lightTokens.Should().NotBeNull();
+        lightTokens!["background"].Should().NotBeNull(because: "'background' token must be present");
+        lightTokens!["primary"].Should().NotBeNull(because: "'primary' token must be present");
+        lightTokens.Count.Should().BeGreaterThanOrEqualTo(19);
     }
 
     [Fact]
     public async Task ThemeShowTool_uses_projectDir_arg_when_supplied()
     {
-        // Create a secondary dir with a custom theme.
         var altDir = Path.Combine(_dir, "alt");
         Directory.CreateDirectory(altDir);
-        var aspireformDir = Path.Combine(altDir, ".aspireform");
-        Directory.CreateDirectory(aspireformDir);
-        await File.WriteAllTextAsync(Path.Combine(aspireformDir, "theme.json"),
-            """{ "color-bg": "#112233" }""");
 
         var tool = new ThemeShowTool(_dir); // default to _dir
         var result = await tool.ExecuteAsync(new JsonObject { ["projectDir"] = altDir }, default);
         result.IsError.Should().BeFalse();
-        result.Content[0].Text.Should().Contain("#112233");
+
+        var json = result.Content[0].Text;
+        var node = JsonNode.Parse(json) as JsonObject;
+        node!["activeName"].Should().NotBeNull();
     }
 }

@@ -1,9 +1,8 @@
 using AspireForm.Ui.Theme;
 using AspireForm.Ui.Components.Theme;
 using AwesomeAssertions;
+using BlazorBlueprint.Components;
 using Bunit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.JSInterop;
 using Xunit;
 
 // Alias to avoid ambiguity with xunit.v3's static Xunit.TestContext.
@@ -11,55 +10,63 @@ using BunitTestContext = Bunit.TestContext;
 
 namespace AspireForm.Tests.Ui.Theme;
 
-public sealed class ThemeTokenEditorTests
+public sealed class TokenBucketEditorTests
 {
-    private sealed class FakeThemeStore : IThemeStore
+    private static Dictionary<string, string> MakeTokens() =>
+        ThemeTokenNames.All.ToDictionary(t => t, _ => "0 0% 100%");
+
+    [Fact]
+    public void TokenBucketEditor_renders_row_for_each_token()
     {
-        private readonly Dictionary<string, string> _data = [];
+        using var ctx = new BunitTestContext();
+        ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+        ctx.JSInterop.SetupModule("./_content/BlazorBlueprint.Components/js/text-input.js");
+        ctx.Services.AddBlazorBlueprintComponents();
+        var tokens = MakeTokens();
+        bool saved = false;
 
-        public IReadOnlyDictionary<string, string> GetTokens()
-        {
-            var result = ThemeDefaults.Tokens.ToDictionary(t => t.Name, t => t.DefaultValue);
-            foreach (var kv in _data) result[kv.Key] = kv.Value;
-            return result;
-        }
+        var cut = ctx.RenderComponent<TokenBucketEditor>(p => p
+            .Add(c => c.Tokens, tokens)
+            .Add(c => c.OnSave, () => { saved = true; return Task.CompletedTask; }));
 
-        public Task SaveTokenAsync(string name, string value, CancellationToken ct = default)
-        {
-            _data[name] = value;
-            return Task.CompletedTask;
-        }
-
-        public Task ResetToDefaultsAsync(CancellationToken ct = default)
-        {
-            _data.Clear();
-            return Task.CompletedTask;
-        }
+        // Each token name should appear as a CSS var label.
+        cut.Markup.Should().Contain("--background");
+        cut.Markup.Should().Contain("--primary");
+        cut.Markup.Should().Contain("--foreground");
     }
 
     [Fact]
-    public void ThemeTokenEditor_renders_row_for_each_token()
+    public void TokenBucketEditor_shows_save_button()
     {
         using var ctx = new BunitTestContext();
-        ctx.Services.AddSingleton<IThemeStore>(new FakeThemeStore());
-        ctx.Services.AddSingleton<IJSRuntime>(new BunitJSInterop().JSRuntime);
+        ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+        ctx.JSInterop.SetupModule("./_content/BlazorBlueprint.Components/js/text-input.js");
+        ctx.Services.AddBlazorBlueprintComponents();
+        var tokens = MakeTokens();
+        var cut = ctx.RenderComponent<TokenBucketEditor>(p => p
+            .Add(c => c.Tokens, tokens)
+            .Add(c => c.OnSave, () => Task.CompletedTask));
 
-        var cut = ctx.RenderComponent<ThemeTokenEditor>();
-
-        // 14 token rows — check a sample of label text.
-        cut.Markup.Should().Contain("Primary accent / links");
-        cut.Markup.Should().Contain("Page background");
-        cut.Markup.Should().Contain("Main borders");
+        cut.Markup.Should().Contain("Save tokens");
     }
 
     [Fact]
-    public void ThemeTokenEditor_shows_default_color_values()
+    public async Task TokenBucketEditor_calls_OnSave_when_button_clicked()
     {
         using var ctx = new BunitTestContext();
-        ctx.Services.AddSingleton<IThemeStore>(new FakeThemeStore());
-        ctx.Services.AddSingleton<IJSRuntime>(new BunitJSInterop().JSRuntime);
+        ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+        ctx.JSInterop.SetupModule("./_content/BlazorBlueprint.Components/js/text-input.js");
+        ctx.Services.AddBlazorBlueprintComponents();
+        var tokens = MakeTokens();
+        var saveCount = 0;
 
-        var cut = ctx.RenderComponent<ThemeTokenEditor>();
-        cut.Markup.Should().Contain("#1a73e8"); // default primary color
+        var cut = ctx.RenderComponent<TokenBucketEditor>(p => p
+            .Add(c => c.Tokens, tokens)
+            .Add(c => c.OnSave, () => { saveCount++; return Task.CompletedTask; }));
+
+        var saveBtn = cut.Find("button");
+        await cut.InvokeAsync(() => saveBtn.Click());
+
+        saveCount.Should().Be(1);
     }
 }

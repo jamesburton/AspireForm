@@ -7,10 +7,10 @@ namespace AspireForm.Tests.Mcp;
 public sealed class McpCommandRegistrationTests
 {
     [Fact]
-    public void BuildRegistry_registers_14_verbs_3_macros_12_entity_tools_10_endpoint_tools_1_theme_tool_total_40()
+    public void BuildRegistry_registers_14_verbs_3_macros_12_entity_tools_10_endpoint_tools_3_theme_tools_total_42()
     {
         var r = McpCommand.BuildRegistry(".");
-        r.All.Count.Should().Be(40); // 14 low-level + 12 entity + 3 macros + 10 endpoint + 1 theme = 40
+        r.All.Count.Should().Be(42); // 14 low-level + 12 entity + 3 macros + 10 endpoint + 3 theme = 42
 
         string[] expectedLowLevel =
         [
@@ -52,6 +52,8 @@ public sealed class McpCommandRegistrationTests
         foreach (var n in expectedEndpointTools)
             r.Contains(n).Should().BeTrue(because: $"endpoint tool '{n}' must be registered");
 
-        r.Contains("aspireform_theme_show").Should().BeTrue(because: "theme tool must be registered");
+        r.Contains("aspireform_theme_show").Should().BeTrue(because: "theme show tool must be registered");
+        r.Contains("aspireform_theme_list").Should().BeTrue(because: "theme list tool must be registered");
+        r.Contains("aspireform_theme_activate").Should().BeTrue(because: "theme activate tool must be registered");
     }
 }

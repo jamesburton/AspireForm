@@ -40,3 +40,15 @@ export async function switchTheme(themeName) {
     } catch { /* best-effort */ }
     reloadThemeCss();
 }
+
+/**
+ * Copy text to the clipboard.
+ * @param {string} text
+ */
+export async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+    } catch {
+        /* Clipboard API may be unavailable in some contexts — fail silently. */
+    }
+}

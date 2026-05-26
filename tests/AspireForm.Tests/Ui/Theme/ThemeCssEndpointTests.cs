@@ -21,8 +21,23 @@ public sealed class ThemeCssEndpointTests : IDisposable
         return port;
     }
 
+    private static async Task<HttpResponseMessage?> PollAsync(HttpClient http, string path, int attempts = 20)
+    {
+        HttpResponseMessage? resp = null;
+        for (int i = 0; i < attempts; i++)
+        {
+            try
+            {
+                resp = await http.GetAsync(path);
+                if (resp.IsSuccessStatusCode) break;
+            }
+            catch (HttpRequestException) { await Task.Delay(150); }
+        }
+        return resp;
+    }
+
     [Fact]
-    public async Task ThemeCss_returns_css_with_all_14_tokens()
+    public async Task ThemeCss_returns_200_with_css_content_type()
     {
         var port = FindFreeTcpPort();
         var opts = new UiOptions { ProjectDir = _dir, Port = port, LaunchBrowser = false };
@@ -31,24 +46,11 @@ public sealed class ThemeCssEndpointTests : IDisposable
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
-            HttpResponseMessage? resp = null;
-            for (int i = 0; i < 20; i++)
-            {
-                try { resp = await http.GetAsync("/theme.css"); if (resp.IsSuccessStatusCode) break; }
-                catch (HttpRequestException) { await Task.Delay(150); }
-            }
+            var resp = await PollAsync(http, "/theme.css");
 
             resp.Should().NotBeNull();
             resp!.IsSuccessStatusCode.Should().BeTrue();
             resp.Content.Headers.ContentType!.MediaType.Should().Be("text/css");
-            var body = await resp.Content.ReadAsStringAsync();
-            body.Should().Contain("--af-color-primary:");
-            body.Should().Contain("--af-color-bg:");
-            body.Should().Contain("--af-color-border:");
-
-            // Check all 14 tokens are present.
-            AspireForm.Ui.Theme.ThemeDefaults.Tokens
-                .Should().AllSatisfy(t => body.Should().Contain(t.CssVar));
         }
         finally
         {
@@ -58,14 +60,8 @@ public sealed class ThemeCssEndpointTests : IDisposable
     }
 
     [Fact]
-    public async Task ThemeCss_reflects_custom_token_saved_to_theme_json()
+    public async Task ThemeCss_contains_root_block_with_expected_tokens()
     {
-        // Pre-seed the theme.json file directly.
-        var aspireformDir = Path.Combine(_dir, ".aspireform");
-        Directory.CreateDirectory(aspireformDir);
-        await File.WriteAllTextAsync(Path.Combine(aspireformDir, "theme.json"),
-            """{ "color-primary": "#aabbcc" }""");
-
         var port = FindFreeTcpPort();
         var opts = new UiOptions { ProjectDir = _dir, Port = port, LaunchBrowser = false };
         using var cts = new CancellationTokenSource();
@@ -73,15 +69,18 @@ public sealed class ThemeCssEndpointTests : IDisposable
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
-            HttpResponseMessage? resp = null;
-            for (int i = 0; i < 20; i++)
-            {
-                try { resp = await http.GetAsync("/theme.css"); if (resp.IsSuccessStatusCode) break; }
-                catch (HttpRequestException) { await Task.Delay(150); }
-            }
-
+            var resp = await PollAsync(http, "/theme.css");
             var body = await resp!.Content.ReadAsStringAsync();
-            body.Should().Contain("#aabbcc");
+
+            body.Should().Contain(":root");
+            body.Should().Contain("--background:");
+            body.Should().Contain("--primary:");
+            body.Should().Contain("--foreground:");
+            body.Should().Contain("--radius:");
+
+            // Verify all 19 known tokens are emitted.
+            foreach (var token in AspireForm.Ui.Theme.ThemeTokenNames.All)
+                body.Should().Contain($"--{token}:", because: $"token '{token}' must appear in /theme.css");
         }
         finally
         {
